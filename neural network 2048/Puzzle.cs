@@ -172,7 +172,7 @@ namespace neural_network_2048
                         Grid[x, y] = 0;
                         x += Math.Sign(dx);
                         Grid[x, y] = value * 2;
-                        Score += 1;
+                        Score += value * 2;
                         if (value * 2 == Max)
                         {
                             Win();
@@ -206,7 +206,7 @@ namespace neural_network_2048
                         Grid[x, y] = 0;
                         y += Math.Sign(dy);
                         Grid[x, y] = value * 2;
-                        Score += 1;
+                        Score += value * 2;
                         if (value * 2 == Max)
                         {
                             Win();
@@ -245,7 +245,7 @@ namespace neural_network_2048
                         Grid[x, y] = 0;
                         x += Math.Sign(dx);
                         Grid[x, y] = value * 2;
-                        Score += 1;
+                        Score += value * 2;
                         if (value * 2 == Max)
                         {
                             Win();
@@ -279,7 +279,7 @@ namespace neural_network_2048
                         Grid[x, y] = 0;
                         y += Math.Sign(dy);
                         Grid[x, y] = value * 2;
-                        Score += 1;
+                        Score += value * 2;
                         if (value * 2 == Max)
                         {
                             Win();
