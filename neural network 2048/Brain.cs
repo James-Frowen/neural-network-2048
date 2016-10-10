@@ -29,25 +29,25 @@ namespace neural_network_2048
             Weight1 = new Matrix(Hidden1.Rows, Input.Rows);
             Weight2 = new Matrix(Hidden2.Rows, Hidden1.Rows);
             Weight3 = new Matrix(Output.Rows, Hidden2.Rows);
-            for (int i = 1; i <= Weight1.Rows; i++)
+            for (int i = 0; i < Weight1.Rows; i++)
             {
-                for (int j = 1; j <= Weight1.Columns; j++)
+                for (int j = 0; j < Weight1.Columns; j++)
                 {
-                    Weight1.Set(i, j, r.NextDouble() * 4 - 2);
+                    Weight1.Data[i, j] = r.NextDouble() * 4 - 2;
                 }
             }
-            for (int i = 1; i <= Weight2.Rows ; i++)
+            for (int i = 0; i < Weight2.Rows ; i++)
             {
-                for (int j = 1; j <= Weight2.Columns; j++)
+                for (int j = 0; j < Weight2.Columns; j++)
                 {
-                    Weight2.Set(i, j, r.NextDouble() * 4 - 2);
+                    Weight2.Data[i, j] = r.NextDouble() * 4 - 2;
                 }
             }
-            for (int i = 1; i <= Weight3.Rows; i++)
+            for (int i = 0; i < Weight3.Rows; i++)
             {
-                for (int j = 1; j <= Weight3.Columns; j++)
+                for (int j = 0; j < Weight3.Columns; j++)
                 {
-                    Weight3.Set(i, j, r.NextDouble() * 4 - 2);
+                    Weight3.Data[i, j] = r.NextDouble() * 4 - 2;
                 }
             }
 
@@ -77,19 +77,19 @@ namespace neural_network_2048
                 {
                     double v = P.Grid[x, y] == 0 ? -1 : Math.Log(P.Grid[x, y], 2);
                     double m = Math.Log(P.HighestOnGrid(), 2);
-                    Input.Set(x * P.Height + y + 1, 1, v / m);
+                    Input.Data[x * P.Height + y, 0] = v / m;
                 }
             }
             //ActivationFunction(Input);
-            Input.Set(17, 1, P.BadMove());
-            Input.Set(18, 1, P.EmptyPercent());
+            Input.Data[16, 0] = P.BadMove();
+            Input.Data[17, 0] = P.EmptyPercent();
 
             if (forceMove && P.EmptyPercent() > 0.7) // force moves at start
             {
-                Output.Set(1, 1,0);//x1
-                Output.Set(2, 1,1);//y1
-                Output.Set(3, 1,1);//x2
-                Output.Set(4, 1,0);//y2
+                Output.Data[0, 0] = 0;//x1
+                Output.Data[1, 0] = 1;//y1
+                Output.Data[2, 0] = 1;//x2
+                Output.Data[3, 0] = 0;//y2
             }
             else
             {
@@ -109,13 +109,13 @@ namespace neural_network_2048
             double x, y;
             if (P.DoForceMove)
             {
-                x = Output.Get(3, 1);
-                y = Output.Get(4, 1);
+                x = Output.Data[2, 0];
+                y = Output.Data[3, 0];
             } 
             else
             {
-                x = Output.Get(1, 1);
-                y = Output.Get(2, 1);
+                x = Output.Data[0, 0];
+                y = Output.Data[1, 0];
             }
             
 
@@ -146,11 +146,11 @@ namespace neural_network_2048
 
         public void ActivationFunction(Matrix A)
         {
-            for (int i = 1; i <= A.Rows; i++)
+            for (int i = 0; i < A.Rows; i++)
             {
-                for (int j = 1; j <= A.Columns; j++)
+                for (int j = 0; j < A.Columns; j++)
                 {
-                    A.Set(i, j, Math.Tanh(A.Get(i, j)));
+                    A.Data[i, j] = Math.Tanh(A.Data[i, j]);
                 }
             }
         }
@@ -188,11 +188,11 @@ namespace neural_network_2048
         private Matrix MatrixEvolve(Matrix A)
         {
             Matrix R = A.Clone();
-            for (int i = 1; i <= R.Rows; i++)
+            for (int i = 0; i < R.Rows; i++)
             {
-                for (int j = 1; j <= R.Columns; j++)
+                for (int j = 0; j < R.Columns; j++)
                 {
-                    R.Set(i, j, R.Get(i, j) * Math.Pow(1.05, r.NextDouble() - 0.5));
+                    R.Data[i, j] = R.Data[i, j] * Math.Pow(1.05, r.NextDouble() - 0.5);
                 }
             }
 

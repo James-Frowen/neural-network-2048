@@ -29,30 +29,30 @@ namespace neural_network_2048
             }
         }
 
-        public double Get(int i, int j)
-        {
-            return Data[i - 1, j - 1];
-        }
-        public void Set(int i, int j, double value)
-        {
-            Data[i - 1, j - 1] = value;
-        }
+        //public double Get(int i, int j)
+        //{
+        //    return Data[i - 1, j - 1];
+        //}
+        //public void Set(int i, int j, double value)
+        //{
+        //    Data[i - 1, j - 1] = value;
+        //}
 
         public void FromMultiply(Matrix A, Matrix B, double bias = 0)
         {
             if (A.Columns != B.Rows) { throw new Exception("matrix Multiply failed, bad size"); }
             if (A.Rows != Rows || B.Columns != Columns) { throw new Exception("matrix Multiply failed, result matrix wrong size"); }
 
-            for (int i = 1; i <= Rows; i++)
+            for (int i = 0; i < Rows; i++)
             {
-                for (int j = 1; j <= Columns; j++)
+                for (int j = 0; j < Columns; j++)
                 {
                     double sum = bias;
-                    for (int n = 1; n <= A.Columns; n++)
+                    for (int n = 0; n < A.Columns; n++)
                     {
-                        sum += A.Get(i, n) * B.Get(n, j);
+                        sum += A.Data[i, n] * B.Data[n, j];
                     }
-                    Set(i, j, sum);
+                    Data[i, j] = sum;
                 }
             }
         }
@@ -61,16 +61,16 @@ namespace neural_network_2048
         {
             if (A.Columns != B.Rows) { throw new Exception("matrix Multiply failed, bad size"); }
             Matrix R = new Matrix(A.Rows, B.Columns);
-            for (int i = 1; i <= R.Rows; i++)
+            for (int i = 0; i < R.Rows; i++)
             {
-                for (int j = 1; j <= R.Columns; j++)
+                for (int j = 0; j < R.Columns; j++)
                 {
                     double sum = bias;
-                    for (int n = 1; n <= A.Columns; n++)
+                    for (int n = 0; n < A.Columns; n++)
                     {
-                        sum += A.Get(i, n) * B.Get(n, j);
+                        sum += A.Data[i, n] * B.Data[n, j];
                     }
-                    R.Set(i, j, sum);
+                    R.Data[i, j] = sum;
                 }
             }
 
