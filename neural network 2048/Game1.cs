@@ -223,6 +223,31 @@ namespace neural_network_2048
             //}
             #endregion
 
+            if (state.IsKeyDown(Keys.Q) && oldstate.IsKeyUp(Keys.Q))
+            {
+                BrainTickSpeed *= 1.2;
+            }
+            if (state.IsKeyDown(Keys.E) && oldstate.IsKeyUp(Keys.E))
+            {
+                BrainTickSpeed /= 1.2;
+            }
+            if (state.IsKeyDown(Keys.Space) && oldstate.IsKeyUp(Keys.Space))
+            {
+                Paused = !Paused;
+            }
+            if (state.IsKeyDown(Keys.Enter) && oldstate.IsKeyUp(Keys.Enter))
+            {
+                WholeGeneration = !WholeGeneration;
+            }
+            if (state.IsKeyDown(Keys.LeftShift) && oldstate.IsKeyUp(Keys.LeftShift))
+            {
+                Do1Gen = true;
+                WholeGeneration = true;
+                Paused = false;
+            }
+
+
+
             if (!Paused)
             {
                 if (WholeGeneration)
@@ -253,28 +278,7 @@ namespace neural_network_2048
             }
            
             
-            if (state.IsKeyDown(Keys.Q) && oldstate.IsKeyUp(Keys.Q))
-            {
-                BrainTickSpeed *= 1.2;
-            }
-            if (state.IsKeyDown(Keys.E) && oldstate.IsKeyUp(Keys.E))
-            {
-                BrainTickSpeed /= 1.2;
-            }
-            if (state.IsKeyDown(Keys.Space) && oldstate.IsKeyUp(Keys.Space))
-            {
-                Paused = !Paused;
-            }
-            if (state.IsKeyDown(Keys.Enter) && oldstate.IsKeyUp(Keys.Enter))
-            {
-                WholeGeneration = !WholeGeneration;
-            }
-            if (state.IsKeyDown(Keys.LeftShift) && oldstate.IsKeyUp(Keys.LeftShift))
-            {
-                Do1Gen = true;
-                WholeGeneration = true;
-                Paused = false;
-            }
+            
 
 
             oldstate = state;
