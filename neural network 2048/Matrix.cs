@@ -19,7 +19,6 @@ namespace neural_network_2048
 
         public void SetData(double[,] data)
         {
-            if (data.GetLength(0) != Rows || data.GetLength(1) != Columns) { throw new Exception("data wrong size"); }
             for (int i = 0; i < Rows; i++)
             {
                 for (int j = 0; j < Columns; j++)
@@ -40,9 +39,6 @@ namespace neural_network_2048
 
         public void FromMultiply(Matrix A, Matrix B, double bias = 0)
         {
-            if (A.Columns != B.Rows) { throw new Exception("matrix Multiply failed, bad size"); }
-            if (A.Rows != Rows || B.Columns != Columns) { throw new Exception("matrix Multiply failed, result matrix wrong size"); }
-
             for (int i = 0; i < Rows; i++)
             {
                 for (int j = 0; j < Columns; j++)
@@ -59,7 +55,6 @@ namespace neural_network_2048
 
         public static Matrix Multiply(Matrix A, Matrix B, double bias = 0)
         {
-            if (A.Columns != B.Rows) { throw new Exception("matrix Multiply failed, bad size"); }
             Matrix R = new Matrix(A.Rows, B.Columns);
             for (int i = 0; i < R.Rows; i++)
             {

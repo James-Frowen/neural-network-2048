@@ -71,12 +71,12 @@ namespace neural_network_2048
         public void CalculateMove(Puzzle P, bool forceMove = false)
         {
             // give data to input matrix
+            double m = Math.Log(P.HighestOnGrid(), 2);
             for (int x=0;x<P.Width;x++)
             {
                 for (int y = 0; y < P.Height; y++)
                 {
                     double v = P.Grid[x, y] == 0 ? -1 : Math.Log(P.Grid[x, y], 2);
-                    double m = Math.Log(P.HighestOnGrid(), 2);
                     Input.Data[x * P.Height + y, 0] = v / m;
                 }
             }
