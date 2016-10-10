@@ -172,8 +172,11 @@ namespace neural_network_2048
             child.Weight2 = MatrixEvolve(Weight2);
             child.Weight3 = MatrixEvolve(Weight3);
             child.Bias1 = Bias1 * Math.Pow(1.05, r.NextDouble() - 0.5);
+            if (Math.Abs(child.Bias1) < 0.005) { child.Bias1 *= -1;  }
             child.Bias2 = Bias2 * Math.Pow(1.05, r.NextDouble() - 0.5);
+            if (Math.Abs(child.Bias2) < 0.005) { child.Bias2 *= -1; }
             child.Bias3 = Bias3 * Math.Pow(1.05, r.NextDouble() - 0.5);
+            if (Math.Abs(child.Bias3) < 0.005) { child.Bias3 *= -1; }
             //child.Mutability = Mutability + (r.NextDouble() - 0.5) * Mutability / DeltaMuta;
             if (child.Mutability > MaxMuta) { child.Mutability = MaxMuta; }
             if (child.Mutability < MinMuta) { child.Mutability = MinMuta; }
@@ -190,6 +193,7 @@ namespace neural_network_2048
                 for (int j = 0; j < R.Columns; j++)
                 {
                     R.Data[i, j] = R.Data[i, j] * Math.Pow(1.05, r.NextDouble() - 0.5);
+                    if (Math.Abs(R.Data[i, j]) < 0.005) { R.Data[i, j] *= -1; }
                 }
             }
 

@@ -26,7 +26,7 @@ namespace neural_network_2048
         int drawsperation = 2;
 
         List<Brain> Brains;
-        int BrainsPerGen = 100;
+        int BrainsPerGen = 1000;
         int PuzzlesPerBrain = 10;
 
         int brainNumber = 0;
