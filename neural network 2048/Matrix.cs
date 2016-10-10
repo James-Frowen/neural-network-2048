@@ -52,6 +52,21 @@ namespace neural_network_2048
                 }
             }
         }
+        public void ActivationFromMultiply(Matrix A, Matrix B, double bias = 0)
+        {
+            for (int i = 0; i < Rows; i++)
+            {
+                for (int j = 0; j < Columns; j++)
+                {
+                    double sum = bias;
+                    for (int n = 0; n < A.Columns; n++)
+                    {
+                        sum += A.Data[i, n] * B.Data[n, j];
+                    }
+                    Data[i, j] = Math.Tanh(sum);
+                }
+            }
+        }
 
         public static Matrix Multiply(Matrix A, Matrix B, double bias = 0)
         {

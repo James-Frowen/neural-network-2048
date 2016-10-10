@@ -94,12 +94,9 @@ namespace neural_network_2048
             else
             {
                 // calculate output
-                Hidden1.FromMultiply(Weight1, Input, Bias1);
-                ActivationFunction(Hidden1);
-                Hidden2.FromMultiply(Weight2, Hidden1, Bias2);
-                ActivationFunction(Hidden1);
-                Output.FromMultiply(Weight3, Hidden2, Bias3);
-                ActivationFunction(Output);
+                Hidden1.ActivationFromMultiply(Weight1, Input, Bias1);
+                Hidden2.ActivationFromMultiply(Weight2, Hidden1, Bias2);
+                Output.ActivationFromMultiply(Weight3, Hidden2, Bias3);
             }
 
             
