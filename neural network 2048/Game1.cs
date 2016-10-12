@@ -53,6 +53,13 @@ namespace neural_network_2048
             B.CalculateMove(ActivePuzzle);
             B.MakeMove(ActivePuzzle);
 
+            if (ActivePuzzle.Score > 10000)
+            {
+                BrainTickSpeed = 0.1;
+                WholeGeneration = false;
+                nextgen = true;
+            }
+
             if (ActivePuzzle.hasWon)
             {
                 // have perfect brain
@@ -149,6 +156,12 @@ namespace neural_network_2048
                 Brains.Add(C2);
             }
 
+
+            // makes sure all fitness are reset
+            for (int n = 0; n < Brains.Count; n++)
+            {
+                Brains[n].Fitness = 0;
+            }
         }
 
         public Game1()
