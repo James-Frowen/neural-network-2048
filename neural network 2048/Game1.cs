@@ -26,7 +26,7 @@ namespace neural_network_2048
         int drawsperation = 2;
 
         List<Brain> Brains;
-        int BrainsPerGen = 100;
+        int BrainsPerGen = 200;
         int PuzzlesPerBrain = 10;
 
         int brainNumber = 0;
@@ -92,8 +92,9 @@ namespace neural_network_2048
             //average fitness
             for (int n = 0; n < byfitness.Count; n++)
             {
-                AvgFit += byfitness[n].Fitness / byfitness.Count;
+                AvgFit += byfitness[n].Fitness;
             }
+            AvgFit /= byfitness.Count;
             MaxFit /= PuzzlesPerBrain;
             AvgFit /= PuzzlesPerBrain;
             MinFit /= PuzzlesPerBrain;
@@ -317,7 +318,7 @@ namespace neural_network_2048
                 spriteBatch.DrawString(font1, "Min Fitness: " + (MinFit), new Vector2((P.Width + 1) * (drawsize + drawsperation), 250), Color.Black);
                 //spriteBatch.DrawString(font1, "Last move: " + P.LastMove.ToString(), new Vector2((P.Width + 1) * (drawsize + drawsperation), 200), Color.Black);
 
-                spriteBatch.DrawString(font1, Brains[brainNumber].Mutability.ToString("0.00"), new Vector2((P.Width * 2 +3) * (drawsize + drawsperation), 250), Color.Black);
+                //spriteBatch.DrawString(font1, Brains[brainNumber].Mutability.ToString("0.00"), new Vector2((P.Width * 2 +3) * (drawsize + drawsperation), 250), Color.Black);
 
 
                 spriteBatch.DrawString(font1, "Speed: " + BrainTickSpeed.ToString("0.00"), new Vector2(0, (P.Height + 1) * (drawsize + drawsperation)), Color.Black);
