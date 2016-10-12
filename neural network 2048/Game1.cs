@@ -39,7 +39,7 @@ namespace neural_network_2048
 
         double BrainTickSpeed = 1;
         double tickCounter=0;
-        bool Paused = true;
+        bool Paused = false;
         bool WholeGeneration = true;
         bool Do1Gen = false;
 
@@ -199,6 +199,10 @@ namespace neural_network_2048
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            if (generation== 25)
+            {
+                Exit();
+            }
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
