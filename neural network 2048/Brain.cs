@@ -375,8 +375,8 @@ namespace neural_network_2048
             #endregion
 
 
-            c1 = c1.Evolve(0.01, 0.0001);
-            c2 = c2.Evolve(0.01, 0.0001);
+            c1 = c1.Evolve(0.02, 0.0001);
+            c2 = c2.Evolve(0.02, 0.0001);
         }
 
     }

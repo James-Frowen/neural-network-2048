@@ -26,8 +26,8 @@ namespace neural_network_2048
         int drawsperation = 2;
 
         List<Brain> Brains;
-        int BrainsPerGen = 200;
-        int PuzzlesPerBrain = 10;
+        int BrainsPerGen = 1000;
+        int PuzzlesPerBrain = 1;
 
         int brainNumber = 0;
         int puzzleNumber = 0;
@@ -52,13 +52,6 @@ namespace neural_network_2048
 
             B.CalculateMove(ActivePuzzle);
             B.MakeMove(ActivePuzzle);
-
-            if (ActivePuzzle.Score > 10000)
-            {
-                BrainTickSpeed = 0.1;
-                WholeGeneration = false;
-                nextgen = true;
-            }
 
             if (ActivePuzzle.hasWon)
             {
@@ -139,14 +132,14 @@ namespace neural_network_2048
             List<Brain> byfitness = Brains.OrderByDescending(x => x.Fitness).ToList();
 
             Brains = new List<Brain>();
-            //20% elite continue to next generation
-            for (int n=0;n<byfitness.Count/5;n++)
+            //10% elite continue to next generation
+            for (int n=0;n<byfitness.Count/10;n++)
             {
                 Brains.Add(byfitness[n]);
             }
 
-            //create other 80% by crossover
-            for (int n = 0; n < 2*byfitness.Count / 5; n++)
+            //create other 90% by crossover
+            for (int n = 0; n < 9*byfitness.Count / 20; n++)
             {
                 Brain P = byfitness[n];
                 Brain Q = byfitness[(int)Math.Floor(r.NextDouble()* 4 * byfitness.Count / 5)];
