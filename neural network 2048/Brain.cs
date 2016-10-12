@@ -169,8 +169,8 @@ namespace neural_network_2048
 
         public double Fitness;
         public int ID;
-        public int ParentID;
-        public int Generation = 0;
+        //public int ParentID;
+        //public int Generation = 0;
 
         //public double Mutability;
         //private double MaxMuta = 0.2;
@@ -203,8 +203,8 @@ namespace neural_network_2048
             //if (child.Mutability > MaxMuta) { child.Mutability = MaxMuta; }
             //if (child.Mutability < MinMuta) { child.Mutability = MinMuta; }
 
-            child.Generation = Generation + 1;
-            child.ParentID = ID;
+            //child.Generation = Generation + 1;
+            //child.ParentID = ID;
             return child;
         }
         private Matrix MatrixEvolve(Matrix A)
@@ -230,5 +230,154 @@ namespace neural_network_2048
 
             return R;
         }
+
+        public Brain Evolve(double mutate, double sign)
+        {
+            Brain child = new Brain(Input.Rows, Hidden1.Rows, Hidden2.Rows, Hidden3.Rows, Output.Rows);
+            child.Weight1 = MatrixEvolve(Weight1, mutate, sign);
+            child.Weight2 = MatrixEvolve(Weight2, mutate, sign);
+            child.Weight3 = MatrixEvolve(Weight3, mutate, sign);
+            child.Weight4 = MatrixEvolve(Weight4, mutate, sign);
+
+            if (r.NextDouble() < mutate)
+            { child.Bias1 = Bias1 * Math.Pow(1.05, r.NextDouble() - 0.5); }
+            if (r.NextDouble() < sign / Bias1)
+            { child.Bias1 *= -1; }
+
+            if (r.NextDouble() < mutate)
+            { child.Bias2 = Bias2 * Math.Pow(1.05, r.NextDouble() - 0.5); }
+            if (r.NextDouble() < sign / Bias2)
+            { child.Bias2 *= -1; }
+
+            if (r.NextDouble() < mutate)
+            { child.Bias3 = Bias3 * Math.Pow(1.05, r.NextDouble() - 0.5); }
+            if (r.NextDouble() < sign / Bias3)
+            { child.Bias3 *= -1; }
+
+            if (r.NextDouble() < mutate)
+            { child.Bias4 = Bias4 * Math.Pow(1.05, r.NextDouble() - 0.5); }
+            if (r.NextDouble() < sign / Bias4)
+            { child.Bias4 *= -1; }
+
+            return child;
+        }
+        private Matrix MatrixEvolve(Matrix A, double mutate, double sign)
+        {
+            Matrix R = A.Clone();
+            for (int i = 0; i < R.Rows; i++)
+            {
+                for (int j = 0; j < R.Columns; j++)
+                {
+                    // only mutate at 10% chance
+                    if (r.NextDouble() < mutate)
+                    {
+                        R.Data[i][j] = R.Data[i][j] * Math.Pow(1.05, r.NextDouble() - 0.5);
+                    }
+                    // only mutate (flip sign) at 0.01%/value
+                    // examples:
+                    // if value = 0.01 then there is 10% chance of fliping sign
+                    // if value is 0.1 then there is a 1% chance of flipping
+                    if (r.NextDouble() < sign / R.Data[i][j])
+                    { R.Data[i][j] *= -1; }
+                }
+            }
+
+            return R;
+        }
+
+        public Brain EmptyChild()
+        {
+            Brain child = new Brain(Input.Rows, Hidden1.Rows, Hidden2.Rows, Hidden3.Rows, Output.Rows);
+            
+            return child;
+        }
+
+        public static void Mate(Brain p, Brain q, out Brain c1, out Brain c2)
+        {
+            c1 = p.EmptyChild();
+            c2 = p.EmptyChild();
+
+            c1.Weight1 = new Matrix(c1.Hidden1.Rows, c1.Input.Rows);
+            c1.Weight2 = new Matrix(c1.Hidden2.Rows, c1.Hidden1.Rows);
+            c1.Weight3 = new Matrix(c1.Hidden3.Rows, c1.Hidden2.Rows);
+            c1.Weight4 = new Matrix(c1.Output.Rows, c1.Hidden3.Rows);
+            c2.Weight1 = new Matrix(c2.Hidden1.Rows, c2.Input.Rows);
+            c2.Weight2 = new Matrix(c2.Hidden2.Rows, c2.Hidden1.Rows);
+            c2.Weight3 = new Matrix(c2.Hidden3.Rows, c2.Hidden2.Rows);
+            c2.Weight4 = new Matrix(c2.Output.Rows, c2.Hidden3.Rows);
+
+            #region swap genes
+            if (r.NextDouble() > 0.5) {
+                c1.Bias1 = p.Bias1;
+                c2.Bias1 = q.Bias1;
+            } else {
+                c1.Bias1 = q.Bias1;
+                c2.Bias1 = p.Bias1;
+            }
+            if (r.NextDouble() > 0.5) {
+                c1.Bias2 = p.Bias2;
+                c2.Bias2 = q.Bias2;
+            } else {
+                c1.Bias2 = q.Bias2;
+                c2.Bias2 = p.Bias2;
+            }
+            if (r.NextDouble() > 0.5) {
+                c1.Bias3 = p.Bias3;
+                c2.Bias3 = q.Bias3;
+            } else {
+                c1.Bias3 = q.Bias3;
+                c2.Bias3 = p.Bias3;
+            }
+            if (r.NextDouble() > 0.5) {
+                c1.Bias4 = p.Bias4;
+                c2.Bias4 = q.Bias4;
+            } else {
+                c1.Bias4 = q.Bias4;
+                c2.Bias4 = p.Bias4;
+            }
+
+            for (int i = 0; i < p.Weight1.Rows; i++) {
+                for (int j = 0; j < p.Weight1.Columns; j++) {
+                    if (r.NextDouble() > 0.5) {
+                        c1.Weight1.Data[i][j] = p.Weight1.Data[i][j];
+                        c2.Weight1.Data[i][j] = q.Weight1.Data[i][j];
+                    } else {
+                        c2.Weight1.Data[i][j] = q.Weight1.Data[i][j];
+                        c1.Weight1.Data[i][j] = p.Weight1.Data[i][j];
+            }   }   }
+            for (int i = 0; i < p.Weight2.Rows; i++) {
+                for (int j = 0; j < p.Weight2.Columns; j++) {
+                    if (r.NextDouble() > 0.5) {
+                        c1.Weight2.Data[i][j] = p.Weight2.Data[i][j];
+                        c2.Weight2.Data[i][j] = q.Weight2.Data[i][j];
+                    } else {
+                        c2.Weight2.Data[i][j] = q.Weight2.Data[i][j];
+                        c1.Weight2.Data[i][j] = p.Weight2.Data[i][j];
+            }   }   }
+            for (int i = 0; i < p.Weight3.Rows; i++) {
+                for (int j = 0; j < p.Weight3.Columns; j++) {
+                    if (r.NextDouble() > 0.5) {
+                        c1.Weight3.Data[i][j] = p.Weight3.Data[i][j];
+                        c2.Weight3.Data[i][j] = q.Weight3.Data[i][j];
+                    } else {
+                        c2.Weight3.Data[i][j] = q.Weight3.Data[i][j];
+                        c1.Weight3.Data[i][j] = p.Weight3.Data[i][j];
+            }   }   }
+            for (int i = 0; i < p.Weight4.Rows; i++) {
+                for (int j = 0; j < p.Weight4.Columns; j++) {
+                    if (r.NextDouble() > 0.5) {
+                        c1.Weight4.Data[i][j] = p.Weight4.Data[i][j];
+                        c2.Weight4.Data[i][j] = q.Weight4.Data[i][j];
+                    } else {
+                        c2.Weight4.Data[i][j] = q.Weight4.Data[i][j];
+                        c1.Weight4.Data[i][j] = p.Weight4.Data[i][j];
+            }   }   }
+            #endregion
+
+
+            c1 = c1.Evolve(0.01, 0.0001);
+            c2 = c2.Evolve(0.01, 0.0001);
+        }
+
     }
 }

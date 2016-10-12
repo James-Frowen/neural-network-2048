@@ -72,22 +72,21 @@ namespace neural_network_2048
                     {
                         brainNumber = 0;
 
-                        GetNextGen();
+                        CalculateGenFitness();
+                        GetNextGenCrossover();
                         generation++;
                         nextgen = true;
                     }
                 }
-
-                
             }
         }
 
-        void GetNextGen()
+        void CalculateGenFitness()
         {
             List<Brain> byfitness = Brains.OrderByDescending(x => x.Fitness).ToList();
 
             MaxFit = byfitness[0].Fitness;
-            MinFit = byfitness[byfitness.Count-1].Fitness;
+            MinFit = byfitness[byfitness.Count - 1].Fitness;
             AvgFit = 0;
             //average fitness
             for (int n = 0; n < byfitness.Count; n++)
@@ -99,7 +98,11 @@ namespace neural_network_2048
             AvgFit /= PuzzlesPerBrain;
             MinFit /= PuzzlesPerBrain;
             output.WriteLine("{0},{1},{2},{3}", generation, MaxFit, AvgFit, MinFit);
+        }
 
+        void GetNextGen()
+        {
+            List<Brain> byfitness = Brains.OrderByDescending(x => x.Fitness).ToList();
 
             Brains = new List<Brain>();
             int skiped = 0;
@@ -123,8 +126,30 @@ namespace neural_network_2048
             }
             
         }
-        
 
+        void GetNextGenCrossover()
+        {
+            List<Brain> byfitness = Brains.OrderByDescending(x => x.Fitness).ToList();
+
+            Brains = new List<Brain>();
+            //20% elite continue to next generation
+            for (int n=0;n<byfitness.Count/5;n++)
+            {
+                Brains.Add(byfitness[n]);
+            }
+
+            //create other 80% by crossover
+            for (int n = 0; n < 2*byfitness.Count / 5; n++)
+            {
+                Brain P = byfitness[n];
+                Brain Q = byfitness[(int)Math.Floor(r.NextDouble()* 4 * byfitness.Count / 5)];
+                Brain C1,C2;
+                Brain.Mate(P, Q, out C1, out C2);
+                Brains.Add(C1);
+                Brains.Add(C2);
+            }
+
+        }
 
         public Game1()
         {
