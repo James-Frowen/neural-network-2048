@@ -9,21 +9,25 @@ namespace neural_network_2048
     {
         public Matrix(int rows, int columns)
         {
-            Data = new double[rows, columns];
             Rows = rows;
             Columns = columns;
+            Data = new double[Rows][];
+            for (int n = 0; n < Rows; n++)
+            {
+                Data[n] = new double[Columns];
+            }
         }
         public int Rows, Columns;
-        public double[,] Data;
+        public double[][] Data;
 
 
-        public void SetData(double[,] data)
+        public void SetData(double[][] data)
         {
             for (int i = 0; i < Rows; i++)
             {
                 for (int j = 0; j < Columns; j++)
                 {
-                    Data[i, j] = data[i, j];
+                    Data[i][j] = data[i][j];
                 }
             }
         }
@@ -46,9 +50,9 @@ namespace neural_network_2048
                     double sum = bias;
                     for (int n = 0; n < A.Columns; n++)
                     {
-                        sum += A.Data[i, n] * B.Data[n, j];
+                        sum += A.Data[i][n] * B.Data[n][j];
                     }
-                    Data[i, j] = sum;
+                    Data[i][j] = sum;
                 }
             }
         }
@@ -61,9 +65,9 @@ namespace neural_network_2048
                     double sum = bias;
                     for (int n = 0; n < A.Columns; n++)
                     {
-                        sum += A.Data[i, n] * B.Data[n, j];
+                        sum += A.Data[i][n] * B.Data[n][j];
                     }
-                    Data[i, j] = Math.Tanh(sum);
+                    Data[i][j] = Math.Tanh(sum);
                 }
             }
         }
@@ -78,9 +82,9 @@ namespace neural_network_2048
                     double sum = bias;
                     for (int n = 0; n < A.Columns; n++)
                     {
-                        sum += A.Data[i, n] * B.Data[n, j];
+                        sum += A.Data[i][n] * B.Data[n][j];
                     }
-                    R.Data[i, j] = sum;
+                    R.Data[i][j] = sum;
                 }
             }
 

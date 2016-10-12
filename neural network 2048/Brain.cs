@@ -33,21 +33,21 @@ namespace neural_network_2048
             {
                 for (int j = 0; j < Weight1.Columns; j++)
                 {
-                    Weight1.Data[i, j] = r.NextDouble() * 4 - 2;
+                    Weight1.Data[i][j] = r.NextDouble() * 4 - 2;
                 }
             }
             for (int i = 0; i < Weight2.Rows ; i++)
             {
                 for (int j = 0; j < Weight2.Columns; j++)
                 {
-                    Weight2.Data[i, j] = r.NextDouble() * 4 - 2;
+                    Weight2.Data[i][j] = r.NextDouble() * 4 - 2;
                 }
             }
             for (int i = 0; i < Weight3.Rows; i++)
             {
                 for (int j = 0; j < Weight3.Columns; j++)
                 {
-                    Weight3.Data[i, j] = r.NextDouble() * 4 - 2;
+                    Weight3.Data[i][j] = r.NextDouble() * 4 - 2;
                 }
             }
 
@@ -77,19 +77,19 @@ namespace neural_network_2048
                 for (int y = 0; y < P.Height; y++)
                 {
                     double v = P.Grid[x, y] == 0 ? -1 : Math.Log(P.Grid[x, y], 2);
-                    Input.Data[x * P.Height + y, 0] = v / m;
+                    Input.Data[x * P.Height + y][ 0] = v / m;
                 }
             }
             //ActivationFunction(Input);
-            Input.Data[16, 0] = P.BadMove();
-            Input.Data[17, 0] = P.EmptyPercent();
+            Input.Data[16][ 0] = P.BadMove();
+            Input.Data[17][ 0] = P.EmptyPercent();
 
             if (forceMove && P.EmptyPercent() > 0.7) // force moves at start
             {
-                Output.Data[0, 0] = 0;//x1
-                Output.Data[1, 0] = 1;//y1
-                Output.Data[2, 0] = 1;//x2
-                Output.Data[3, 0] = 0;//y2
+                Output.Data[0][0] = 0;//x1
+                Output.Data[1][ 0] = 1;//y1
+                Output.Data[2][0] = 1;//x2
+                Output.Data[3][0] = 0;//y2
             }
             else
             {
@@ -106,13 +106,13 @@ namespace neural_network_2048
             double x, y;
             if (P.DoForceMove)
             {
-                x = Output.Data[2, 0];
-                y = Output.Data[3, 0];
+                x = Output.Data[2][0];
+                y = Output.Data[3][ 0];
             } 
             else
             {
-                x = Output.Data[0, 0];
-                y = Output.Data[1, 0];
+                x = Output.Data[0][0];
+                y = Output.Data[1][0];
             }
             
 
@@ -147,7 +147,7 @@ namespace neural_network_2048
             {
                 for (int j = 0; j < A.Columns; j++)
                 {
-                    A.Data[i, j] = Math.Tanh(A.Data[i, j]);
+                    A.Data[i][j] = Math.Tanh(A.Data[i][j]);
                 }
             }
         }
@@ -195,9 +195,9 @@ namespace neural_network_2048
             {
                 for (int j = 0; j < R.Columns; j++)
                 {
-                    R.Data[i, j] = R.Data[i, j] * Math.Pow(1.05, r.NextDouble() - 0.5);
-                    if (Math.Abs(R.Data[i, j]) < 0.01 * r.NextDouble())
-                    { R.Data[i, j] *= -1; }
+                    R.Data[i][j] = R.Data[i][j] * Math.Pow(1.05, r.NextDouble() - 0.5);
+                    if (Math.Abs(R.Data[i][j]) < 0.01 * r.NextDouble())
+                    { R.Data[i][j] *= -1; }
                 }
             }
 
