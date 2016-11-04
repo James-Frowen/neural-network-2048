@@ -50,8 +50,8 @@ namespace neural_network_2048
             {
                 for (int y = 0; y < P.Height; y++)
                 {
-                    double v = P.Grid[x, y] == 0 ? -1 : Math.Log(P.Grid[x, y], 2);
-                    Input.Data[x * P.Height + y][0] = v / m;
+                    double v = P.Grid[x, y] == 0 ? -1 : (Math.Log(P.Grid[x, y], 2) / m);
+                    Input.Data[x * P.Height + y][0] = v;
                 }
             }
             //ActivationFunction(Input);
