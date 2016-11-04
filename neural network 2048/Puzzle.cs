@@ -8,7 +8,7 @@ namespace neural_network_2048
 {
     public class Puzzle
     {
-        Random r = new Random();
+        Random r = new Random(1);
         public Puzzle(int width = 4, int height = 4, int max = 2048)
         {
             Width = width;
