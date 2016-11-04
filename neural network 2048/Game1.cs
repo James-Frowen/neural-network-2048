@@ -26,8 +26,8 @@ namespace neural_network_2048
         int drawsperation = 2;
 
         List<Brain> Brains;
-        int BrainsPerGen = 1000;
-        int PuzzlesPerBrain = 1;
+        int BrainsPerGen = 200;
+        int PuzzlesPerBrain = 10;
 
         int brainNumber = 0;
         int puzzleNumber = 0;
@@ -231,6 +231,7 @@ namespace neural_network_2048
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
@@ -267,7 +268,15 @@ namespace neural_network_2048
             {
                 Paused = !Paused;
             }
+            if (state.IsKeyDown(Keys.LeftAlt) && oldstate.IsKeyUp(Keys.LeftAlt))
+            {
+                Paused = !Paused;
+            }
             if (state.IsKeyDown(Keys.Enter) && oldstate.IsKeyUp(Keys.Enter))
+            {
+                WholeGeneration = !WholeGeneration;
+            }
+            if (state.IsKeyDown(Keys.LeftControl) && oldstate.IsKeyUp(Keys.LeftControl))
             {
                 WholeGeneration = !WholeGeneration;
             }
@@ -277,7 +286,7 @@ namespace neural_network_2048
                 WholeGeneration = true;
                 Paused = false;
             }
-
+            
 
 
             if (!Paused)
