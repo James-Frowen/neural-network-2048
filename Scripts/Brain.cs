@@ -38,7 +38,7 @@ namespace NeuralNetwork2048_v2
                 hidden = new List<int>()
                 {
                     //18,12,8
-                    72
+                    60
                     //24,20,16,12,8
                 };
                 _hiddenSizes = hidden;
@@ -90,18 +90,21 @@ namespace NeuralNetwork2048_v2
                     //    ? -1 
                     //    : Math.Log(P.Grid[x, y], 2);
                     //Input[(x * P.Height) + y] = (float)(v / m);
-                    var value = P.Grid[x, y];
-                    Input[(x * P.Height) + y] = (float)(value / m);
 
-                    // set 2nd half of input to the counts of each tile
+                    var value = P.Grid[x, y];
+
                     if (value == 0)
                     {
+                        Input[(x * P.Height) + y] = -1;
                         Input[16]++;
                     }
                     else
                     {
-                        var p = (int)Math.Log(value, 2);
-                        Input[16 + p]++;
+                        Input[(x * P.Height) + y] = (float)(value / m);
+
+                        // set 2nd half of input to the counts of each tile
+                        var i = (int)Math.Log(value, 2);
+                        Input[16 + i]++;
                     }
                 }
             }

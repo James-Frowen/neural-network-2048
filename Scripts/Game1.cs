@@ -302,7 +302,17 @@ namespace NeuralNetwork2048_v2
             // next 30% will mutate
             for (var n = (int)(newCount * .1f); n < newCount * .4f; n++)
             {
-                Brains.Add(byfitness[n].Evolve());
+                var fitness = (float)byfitness[n].Fitness;
+                var best = 20_000;
+                var percent = fitness / best;
+                var percent4 = percent * percent * percent;
+                var oneMinus = 1 - percent4; // will be close to 1 unless fitness is really high
+
+                var factor = oneMinus * 100;
+                var mutate = 0.01f * factor;
+                var sign = 0.001f / 10 * factor;
+
+                Brains.Add(byfitness[n].Evolve(mutate, sign));
             }
 
 
