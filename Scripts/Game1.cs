@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -50,6 +50,9 @@ namespace NeuralNetwork2048_v2
         private BrainThread[] threads;
         private int winnerCount;
 
+        private int ticksForMultiplyMovingAverageIndex;
+        private double[] ticksForMultiplyMovingAverage = new double[10];
+
         private void DoBrainTick()
         {
             timer.Restart();
@@ -96,7 +99,7 @@ namespace NeuralNetwork2048_v2
 
         private void DoGenerationInParallel()
         {
-            const int threadCount = 4;
+            const int threadCount = 20;
             if (threads == null)
             {
                 threads = new BrainThread[threadCount];
@@ -251,6 +254,7 @@ namespace NeuralNetwork2048_v2
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            graphics.PreferredBackBufferHeight = 520;
             Content.RootDirectory = "Content";
 
             IsFixedTimeStep = false;
@@ -281,7 +285,7 @@ namespace NeuralNetwork2048_v2
             }
             ActivePuzzle = new Puzzle();
 
-
+            Paused = true;
 
             oldstate = Keyboard.GetState();
             base.Initialize();
@@ -475,12 +479,26 @@ namespace NeuralNetwork2048_v2
                 DrawTextGroup(ref timerPos, "Tick total", $"{totalMs}ms");
                 DrawTextGroup(ref timerPos, "Main total", $"{totalMainThreadMs}ms");
 
+                double ticksForMultiply;
+                {
+                    var ticks = Interlocked.Exchange(ref Matrix.ticks, 0);
+                    var count = Interlocked.Exchange(ref Matrix.count, 0);
+
+                    var avg = count == 0 ? 0 : ticks / (double)count;
+                    var perUs = 1_000_000 / (double)Stopwatch.Frequency;
+                    ticksForMultiplyMovingAverage[ticksForMultiplyMovingAverageIndex] = avg * perUs;
+                    ticksForMultiplyMovingAverageIndex = (ticksForMultiplyMovingAverageIndex + 1) % ticksForMultiplyMovingAverage.Length;
+                    ticksForMultiply = ticksForMultiplyMovingAverage.Average();
+                }
+                DrawTextGroup(ref timerPos, "Cpu Ticks Multiply", $"{ticksForMultiply:0.00}us");
+
                 //spriteBatch.Draw(WhitePixel, new Rectangle(500, 50, 50, 50), gameTime.IsRunningSlowly ? Color.Red : Color.Green);
             }
 
             spriteBatch.End();
             base.Draw(gameTime);
         }
+
 
         private void DrawTextGroup(ref Vector2 pos, string label, object value)
         {

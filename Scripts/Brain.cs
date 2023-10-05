@@ -33,16 +33,14 @@ namespace NeuralNetwork2048_v2
 
         public Brain(int input = 32, List<int> hidden = null, int output = 4)
         {
-            if (hidden == null)
+            hidden ??= new List<int>()
             {
-                hidden = new List<int>()
-                {
-                    //18,12,8
-                    60
-                    //24,20,16,12,8
-                };
-                _hiddenSizes = hidden;
-            }
+                //18,12,8
+                //60
+                input*input
+                //24,20,16,12,8
+            };
+            _hiddenSizes = hidden;
 
             Input = new float[input];
             Output = new float[output];

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace NeuralNetwork2048_v2
 {
@@ -48,34 +50,96 @@ namespace NeuralNetwork2048_v2
             }
         }
 
-        public static void ActivationFromMultiply(float[] outLayer, Matrix weightMatrix, float[] inLayer)
+        public unsafe void TransposeTo(float* outPtr)
         {
+            for (var i = 0; i < Rows; i++)
+            {
+                var I = i * Columns;
+                for (var j = 0; j < Columns; j++)
+                {
+                    outPtr[(j * Rows) + i] = Data[I + j];
+                }
+            }
+        }
+
+        public static long ticks1;
+        public static long ticks2;
+        public static long count;
+
+        // normal 50us
+        // unrolled 45us
+        // transposed 150us
+        // transposed 142us
+        public static unsafe void ActivationFromMultiply(float[] outLayer, Matrix weightMatrix, float[] inLayer)
+        {
+            var start = Stopwatch.GetTimestamp();
             var inLength = inLayer.Length;
             var outLength = outLayer.Length;
             var weights = weightMatrix.Data;
             var bias = weightMatrix.Bias;
+
+            var transposed = stackalloc float[weightMatrix.Data.Length];
+            weightMatrix.TransposeTo(transposed);
 
             for (var i = 0; i < outLength; i++)
             {
                 var weight_I = i * inLength;
                 var sum = bias;
 
-                // Unrolled loop 4 times
-                var n = 0;
-                var inLengthMinus3 = inLength - 3;
-
-                for (; n < inLengthMinus3; n += 4)
+                // normal
                 {
-                    sum += weights[weight_I + n] * inLayer[n];
-                    sum += weights[weight_I + n + 1] * inLayer[n + 1];
-                    sum += weights[weight_I + n + 2] * inLayer[n + 2];
-                    sum += weights[weight_I + n + 3] * inLayer[n + 3];
+                    //for (var n = 0; n < inLength; n++)
+                    //{
+                    //    sum += weights[weight_I + n] * inLayer[n];
+                    //}
                 }
 
-                // Handle the remaining elements if inLength is not a multiple of 4
-                for (; n < inLength; n++)
+                // unrolled
                 {
-                    sum += weights[weight_I + n] * inLayer[n];
+                    // Unrolled loop 4 times
+                    var n = 0;
+                    var inLengthMinus3 = inLength - 3;
+
+                    for (; n < inLengthMinus3; n += 4)
+                    {
+                        sum += weights[weight_I + n] * inLayer[n];
+                        sum += weights[weight_I + n + 1] * inLayer[n + 1];
+                        sum += weights[weight_I + n + 2] * inLayer[n + 2];
+                        sum += weights[weight_I + n + 3] * inLayer[n + 3];
+                    }
+
+                    // Handle the remaining elements if inLength is not a multiple of 4
+                    for (; n < inLength; n++)
+                    {
+                        sum += weights[weight_I + n] * inLayer[n];
+                    }
+                }
+
+                // transposed
+                {
+                    //for (var n = 0; n < inLength; n++)
+                    //{
+                    //    sum += transposed[i + (n * outLength)] * inLayer[n];
+                    //}
+                }
+                // transposed unrolled
+                {
+                    //var n = 0;
+                    //var inLengthMinus3 = inLength - 3;
+
+                    //for (; n < inLengthMinus3; n += 4)
+                    //{
+                    //    sum += transposed[i + (n * outLength)] * inLayer[n];
+                    //    sum += transposed[i + ((n + 1) * outLength)] * inLayer[n + 1];
+                    //    sum += transposed[i + ((n + 2) * outLength)] * inLayer[n + 2];
+                    //    sum += transposed[i + ((n + 3) * outLength)] * inLayer[n + 3];
+                    //}
+
+                    //// Handle the remaining elements if inLength is not a multiple of 4
+                    //for (; n < inLength; n++)
+                    //{
+                    //    sum += transposed[i + (n * outLength)] * inLayer[n];
+                    //}
                 }
 
                 //var activation = (float)Selu(sum);
@@ -93,6 +157,9 @@ namespace NeuralNetwork2048_v2
                     outLayer[i] = scale * ((alpha * (float)Math.Exp(sum)) - alpha);
                 }
             }
+            var end = Stopwatch.GetTimestamp();
+            Interlocked.Add(ref ticks, end - start);
+            Interlocked.Increment(ref count);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Selu(float x)
