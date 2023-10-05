@@ -124,7 +124,7 @@ namespace NeuralNetwork2048_v2
             // calculate output
             for (var i = 0; i < weightCount; i++)
             {
-                Matrix.ActivationFromMultiply(Layers[i + 1], Weights[i], Layers[i]);
+                Matrix.ActivationFromMultiplyHalf(Layers[i + 1], Weights[i], Layers[i]);
             }
             //}
         }

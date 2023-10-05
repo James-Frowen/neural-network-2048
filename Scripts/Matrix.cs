@@ -10,6 +10,8 @@
 // unrolled 2.9us
 // SIMD 3.6us
 // SIMD unrolled 3.6us
+// Half 13us
+
 
 #define UNROLLED
 //#define TRANSPOSED
@@ -21,6 +23,10 @@ using System.Threading;
 
 namespace NeuralNetwork2048_v2
 {
+    public class MatrixHalf
+    {
+        // store weights are short instead
+    }
     public class Matrix
     {
         public readonly int Rows;
@@ -81,6 +87,81 @@ namespace NeuralNetwork2048_v2
         public static long ticks;
         public static long count;
 
+        public static unsafe void ActivationFromMultiplyHalf(float[] outLayer, Matrix weightMatrix, float[] inLayer)
+        {
+            var outValues = stackalloc Half[outLayer.Length];
+
+            var weightMatrixValues = stackalloc Half[weightMatrix.Data.Length];
+            for (var i = 0; i < weightMatrix.Data.Length; i++)
+            {
+                weightMatrixValues[i] = (Half)weightMatrix.Data[i];
+            }
+
+            var inLayerValues = stackalloc Half[inLayer.Length];
+            for (var i = 0; i < inLayer.Length; i++)
+            {
+                inLayerValues[i] = (Half)inLayer[i];
+            }
+
+            ActivationFromMultiplyHalf(outValues, outLayer.Length, weightMatrix.Bias, weightMatrixValues, weightMatrix.Rows, weightMatrix.Columns, inLayerValues, inLayer.Length);
+
+            for (var i = 0; i < outLayer.Length; i++)
+            {
+                outLayer[i] = (float)outValues[i];
+            }
+        }
+        public static unsafe void ActivationFromMultiplyHalf(Half* outLayer, int outLength, float bias, Half* weights, int Rows, int Columns, Half* inLayer, int inLength)
+        {
+            var start = Stopwatch.GetTimestamp();
+            for (var i = 0; i < outLength; i++)
+            {
+                var weight_I = i * inLength;
+                var sum = bias;
+#if !UNROLLED
+                // normal
+                for (var n = 0; n < inLength; n++)
+                {
+                    sum += weights[weight_I + n] * inLayer[n];
+                }
+#else
+                // Unrolled loop 4 times
+                var n = 0;
+                var inLengthMinus3 = inLength - 3;
+
+                for (; n < inLengthMinus3; n += 4)
+                {
+                    sum += (float)weights[weight_I + n] * (float)inLayer[n];
+                    sum += (float)weights[weight_I + n + 1] * (float)inLayer[n + 1];
+                    sum += (float)weights[weight_I + n + 2] * (float)inLayer[n + 2];
+                    sum += (float)weights[weight_I + n + 3] * (float)inLayer[n + 3];
+                }
+
+                // Handle the remaining elements if inLength is not a multiple of 4
+                for (; n < inLength; n++)
+                {
+                    sum += (float)weights[weight_I + n] * (float)inLayer[n];
+                }
+#endif
+
+                //var activation = (float)Selu(sum);
+                //var activation = (float)Math.Tanh(sum);
+
+                const float alpha = 1.6733f;
+                const float scale = 1.0507f;
+                //return scale * (x < 0 ? ((alpha * (float)Math.Exp(x)) - alpha) : x);
+                if (sum > 0)
+                {
+                    outLayer[i] = (Half)(scale * sum);
+                }
+                else
+                {
+                    outLayer[i] = (Half)(scale * ((alpha * (float)Math.Exp(sum)) - alpha));
+                }
+            }
+            var end = Stopwatch.GetTimestamp();
+            Interlocked.Add(ref ticks, end - start);
+            Interlocked.Increment(ref count);
+        }
         public static unsafe void ActivationFromMultiply(float[] outLayer, Matrix weightMatrix, float[] inLayer)
         {
             var start = Stopwatch.GetTimestamp();
