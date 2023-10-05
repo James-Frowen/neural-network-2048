@@ -36,8 +36,8 @@ namespace NeuralNetwork2048_v2
             hidden ??= new List<int>()
             {
                 //18,12,8
-                //60
-                input*input
+                64
+                //input*input
                 //24,20,16,12,8
             };
             _hiddenSizes = hidden;
