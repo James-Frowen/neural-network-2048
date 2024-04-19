@@ -19,32 +19,88 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace NeuralNetwork2048_v2
 {
-    public class MatrixHalf
+    [StructLayout(LayoutKind.Explicit, Size = 1)]
+    public struct BFloat
     {
-        // store weights are short instead
+        [FieldOffset(0)]
+        public byte raw;
+
+        public static readonly BFloat Zero = default;
     }
+    public static class BitHelper
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ToFloat(this BFloat bValue)
+        {
+            var sign = bValue.raw & 1;
+            var value = bValue.raw >> 1;
+
+            // sign = 1 => (2-1) => 1
+            // sign = 0 => (0-1) => -1
+            var signMultiply = (sign * 2) - 1;
+
+            return value / 100f * signMultiply;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BFloat ToByte(this float fValue)
+        {
+            var sign = Math.Sign(fValue);
+            var abs = Math.Abs(fValue);
+
+            // sign = 1  => ( 1+1)/2 => 1
+            // sign = 0  => ( 0+1)/2 => 0
+            // sign = -1 => (-1+1)/2 => 0
+            var signBit = (sign + 1) / 2;
+
+            var clamped = (int)Math.Clamp(abs * 100f, 0, 127);
+
+            return new BFloat { raw = (byte)((clamped << 1) | signBit) };
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BFloat ToByte(this int iValue)
+        {
+            return ToByte((float)iValue);
+        }
+
+        public static unsafe void CopyInto(this BFloat[] a, BFloat[] b)
+        {
+            var size = a.Length;
+            if (b.Length != size)
+                throw new ArgumentException("Length should be equal");
+
+            fixed (BFloat* pa = a)
+            {
+                fixed (BFloat* pb = b)
+                {
+                    Unsafe.CopyBlock(pb, pa, (uint)size);
+                }
+            }
+        }
+    }
+
     public class Matrix
     {
         public readonly int Rows;
         public readonly int Columns;
-        public readonly float[] Data;
+        public readonly BFloat[] Data;
         public float Bias;
 
         public Matrix(int rows, int columns)
         {
             Rows = rows;
             Columns = columns;
-            Data = new float[rows * columns];
+            Data = new BFloat[rows * columns];
         }
 
         public Matrix Clone()
         {
             var R = new Matrix(Rows, Columns);
-            Buffer.BlockCopy(Data, 0, R.Data, 0, Data.Length * 4);
+            Data.CopyInto(R.Data);
             R.Bias = Bias;
             return R;
         }
@@ -65,21 +121,10 @@ namespace NeuralNetwork2048_v2
                     var sum = bias;
                     for (var n = 0; n < A.Columns; n++)
                     {
-                        sum += A.Data[A_I + n] * B.Data[(n * B.Columns) + j];
+                        sum += A.Data[A_I + n].ToFloat() * B.Data[(n * B.Columns) + j].ToFloat();
                     }
-                    Data[this_I + j] = (float)Math.Tanh(sum);
-                }
-            }
-        }
 
-        public unsafe void TransposeTo(float* outPtr)
-        {
-            for (var i = 0; i < Rows; i++)
-            {
-                var I = i * Columns;
-                for (var j = 0; j < Columns; j++)
-                {
-                    outPtr[(j * Rows) + i] = Data[I + j];
+                    Data[this_I + j] = ((float)Math.Tanh(sum)).ToByte();
                 }
             }
         }
@@ -87,82 +132,7 @@ namespace NeuralNetwork2048_v2
         public static long ticks;
         public static long count;
 
-        public static unsafe void ActivationFromMultiplyHalf(float[] outLayer, Matrix weightMatrix, float[] inLayer)
-        {
-            var outValues = stackalloc Half[outLayer.Length];
-
-            var weightMatrixValues = stackalloc Half[weightMatrix.Data.Length];
-            for (var i = 0; i < weightMatrix.Data.Length; i++)
-            {
-                weightMatrixValues[i] = (Half)weightMatrix.Data[i];
-            }
-
-            var inLayerValues = stackalloc Half[inLayer.Length];
-            for (var i = 0; i < inLayer.Length; i++)
-            {
-                inLayerValues[i] = (Half)inLayer[i];
-            }
-
-            ActivationFromMultiplyHalf(outValues, outLayer.Length, weightMatrix.Bias, weightMatrixValues, weightMatrix.Rows, weightMatrix.Columns, inLayerValues, inLayer.Length);
-
-            for (var i = 0; i < outLayer.Length; i++)
-            {
-                outLayer[i] = (float)outValues[i];
-            }
-        }
-        public static unsafe void ActivationFromMultiplyHalf(Half* outLayer, int outLength, float bias, Half* weights, int Rows, int Columns, Half* inLayer, int inLength)
-        {
-            var start = Stopwatch.GetTimestamp();
-            for (var i = 0; i < outLength; i++)
-            {
-                var weight_I = i * inLength;
-                var sum = bias;
-#if !UNROLLED
-                // normal
-                for (var n = 0; n < inLength; n++)
-                {
-                    sum += weights[weight_I + n] * inLayer[n];
-                }
-#else
-                // Unrolled loop 4 times
-                var n = 0;
-                var inLengthMinus3 = inLength - 3;
-
-                for (; n < inLengthMinus3; n += 4)
-                {
-                    sum += (float)weights[weight_I + n] * (float)inLayer[n];
-                    sum += (float)weights[weight_I + n + 1] * (float)inLayer[n + 1];
-                    sum += (float)weights[weight_I + n + 2] * (float)inLayer[n + 2];
-                    sum += (float)weights[weight_I + n + 3] * (float)inLayer[n + 3];
-                }
-
-                // Handle the remaining elements if inLength is not a multiple of 4
-                for (; n < inLength; n++)
-                {
-                    sum += (float)weights[weight_I + n] * (float)inLayer[n];
-                }
-#endif
-
-                //var activation = (float)Selu(sum);
-                //var activation = (float)Math.Tanh(sum);
-
-                const float alpha = 1.6733f;
-                const float scale = 1.0507f;
-                //return scale * (x < 0 ? ((alpha * (float)Math.Exp(x)) - alpha) : x);
-                if (sum > 0)
-                {
-                    outLayer[i] = (Half)(scale * sum);
-                }
-                else
-                {
-                    outLayer[i] = (Half)(scale * ((alpha * (float)Math.Exp(sum)) - alpha));
-                }
-            }
-            var end = Stopwatch.GetTimestamp();
-            Interlocked.Add(ref ticks, end - start);
-            Interlocked.Increment(ref count);
-        }
-        public static unsafe void ActivationFromMultiply(float[] outLayer, Matrix weightMatrix, float[] inLayer)
+        public static unsafe void ActivationFromMultiply(BFloat[] outLayer, Matrix weightMatrix, BFloat[] inLayer)
         {
             var start = Stopwatch.GetTimestamp();
             var inLength = inLayer.Length;
@@ -195,16 +165,16 @@ namespace NeuralNetwork2048_v2
 
                 for (; n < inLengthMinus3; n += 4)
                 {
-                    sum += weights[weight_I + n] * inLayer[n];
-                    sum += weights[weight_I + n + 1] * inLayer[n + 1];
-                    sum += weights[weight_I + n + 2] * inLayer[n + 2];
-                    sum += weights[weight_I + n + 3] * inLayer[n + 3];
+                    sum += weights[weight_I + n].ToFloat() * inLayer[n].ToFloat();
+                    sum += weights[weight_I + n + 1].ToFloat() * inLayer[n + 1].ToFloat();
+                    sum += weights[weight_I + n + 2].ToFloat() * inLayer[n + 2].ToFloat();
+                    sum += weights[weight_I + n + 3].ToFloat() * inLayer[n + 3].ToFloat();
                 }
 
                 // Handle the remaining elements if inLength is not a multiple of 4
                 for (; n < inLength; n++)
                 {
-                    sum += weights[weight_I + n] * inLayer[n];
+                    sum += weights[weight_I + n].ToFloat() * inLayer[n].ToFloat();
                 }
 #endif
 #else
@@ -291,11 +261,11 @@ namespace NeuralNetwork2048_v2
                 //return scale * (x < 0 ? ((alpha * (float)Math.Exp(x)) - alpha) : x);
                 if (sum > 0)
                 {
-                    outLayer[i] = scale * sum;
+                    outLayer[i] = (scale * sum).ToByte();
                 }
                 else
                 {
-                    outLayer[i] = scale * ((alpha * (float)Math.Exp(sum)) - alpha);
+                    outLayer[i] = (scale * ((alpha * (float)Math.Exp(sum)) - alpha)).ToByte();
                 }
             }
             var end = Stopwatch.GetTimestamp();
@@ -324,6 +294,15 @@ namespace NeuralNetwork2048_v2
             for (var i = 0; i < data.Length; i++)
             {
                 data[i] = (float)(r.NextDouble() - 0.5) * 4;
+            }
+        }
+
+        public static unsafe void InitRandom(this BFloat[] data, Random r)
+        {
+            fixed (BFloat* dataPtr = data)
+            {
+                var buffer = new Span<byte>(dataPtr, data.Length);
+                r.NextBytes(buffer);
             }
         }
     }

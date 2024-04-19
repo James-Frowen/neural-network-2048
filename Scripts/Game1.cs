@@ -281,7 +281,7 @@ namespace NeuralNetwork2048_v2
             for (var n = 0; n < BrainsPerGen; n++)
             {
                 Brains.Add(new Brain());
-                Brains[n].Initnew();
+                Brains[n].InitNew();
             }
             ActivePuzzle = new Puzzle();
 

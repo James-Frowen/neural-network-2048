@@ -5,13 +5,13 @@ namespace NeuralNetwork2048_v2
 {
     public class Brain
     {
-        private float[] Input;
-        private float[] Output;
+        private BFloat[] Input;
+        private BFloat[] Output;
         private readonly List<int> _hiddenSizes;
 
         private int layerCount;
         private int weightCount;
-        private List<float[]> Layers;
+        private List<BFloat[]> Layers;
         private Matrix[] Weights;
 
         public static Random r;
@@ -42,16 +42,16 @@ namespace NeuralNetwork2048_v2
             };
             _hiddenSizes = hidden;
 
-            Input = new float[input];
-            Output = new float[output];
+            Input = new BFloat[input];
+            Output = new BFloat[output];
 
             layerCount = hidden.Count + 2;
             weightCount = layerCount - 1;
-            Layers = new List<float[]>(layerCount);
+            Layers = new List<BFloat[]>(layerCount);
             Layers.Add(Input);
             foreach (var size in hidden)
             {
-                Layers.Add(new float[size]);
+                Layers.Add(new BFloat[size]);
             }
             Layers.Add(Output);
 
@@ -60,7 +60,7 @@ namespace NeuralNetwork2048_v2
 
             r.NextBytes(randoms);
         }
-        public void Initnew()
+        public void InitNew()
         {
             Weights = new Matrix[weightCount];
             for (var i = 0; i < weightCount; i++)
@@ -74,43 +74,7 @@ namespace NeuralNetwork2048_v2
 
         public void CalculateMove(Puzzle P, bool forceMove = false)
         {
-            // give data to input matrix
-            var m = Math.Log(2048, 2);
-
-            for (var i = 16; i < 32; i++)
-                Input[i] = 0;// clear
-
-            for (var x = 0; x < P.Width; x++)
-            {
-                for (var y = 0; y < P.Height; y++)
-                {
-                    //var v = P.Grid[x, y] == 0 
-                    //    ? -1 
-                    //    : Math.Log(P.Grid[x, y], 2);
-                    //Input[(x * P.Height) + y] = (float)(v / m);
-
-                    var value = P.Grid[x, y];
-
-                    if (value == 0)
-                    {
-                        Input[(x * P.Height) + y] = -1;
-                        Input[16]++;
-                    }
-                    else
-                    {
-                        Input[(x * P.Height) + y] = (float)(value / m);
-
-                        // set 2nd half of input to the counts of each tile
-                        var i = (int)Math.Log(value, 2);
-                        Input[16 + i]++;
-                    }
-                }
-            }
-
-
-            //ActivationFunction(Input);
-            //Input[16] = 0;
-            //Input[17] = P.EmptyPercent() * 100;
+            CreateInputs(P, Input);
 
             //if (forceMove && P.EmptyCount >15) // force moves at start
             //{
@@ -124,9 +88,47 @@ namespace NeuralNetwork2048_v2
             // calculate output
             for (var i = 0; i < weightCount; i++)
             {
-                Matrix.ActivationFromMultiplyHalf(Layers[i + 1], Weights[i], Layers[i]);
+                Matrix.ActivationFromMultiply(Layers[i + 1], Weights[i], Layers[i]);
             }
             //}
+        }
+
+        private static void CreateInputs(Puzzle P, BFloat[] input)
+        {
+            // give data to input matrix
+            var m = Math.Log(2048, 2);
+
+            for (var i = 16; i < 32; i++)
+                input[i] = BFloat.Zero;// clear
+
+            var emptyCount = 0;
+            var size = P.Width * P.Height;
+            for (var x = 0; x < P.Width; x++)
+            {
+                for (var y = 0; y < P.Height; y++)
+                {
+                    //var v = P.Grid[x, y] == 0 
+                    //    ? -1 
+                    //    : Math.Log(P.Grid[x, y], 2);
+                    //Input[(x * P.Height) + y] = (float)(v / m);
+
+                    var value = P.Grid[x, y];
+
+                    if (value == 0)
+                    {
+                        input[(x * P.Height) + y] = (-1f).ToByte();
+                        emptyCount++;
+                    }
+                    else
+                    {
+                        input[(x * P.Height) + y] = ((float)(value / m)).ToByte();
+                    }
+                }
+            }
+
+            //ActivationFunction(Input);
+            input[16] = (emptyCount / size).ToByte();
+            //Input[17] = P.EmptyPercent() * 100;
         }
 
         private (float priority, Puzzle.MoveDirection direction)[] moves = new (float priority, Puzzle.MoveDirection direction)[4];
@@ -134,7 +136,7 @@ namespace NeuralNetwork2048_v2
         {
             for (var i = 0; i < 4; i++)
             {
-                moves[i] = (Output[i], (Puzzle.MoveDirection)i);
+                moves[i] = (Output[i].ToFloat(), (Puzzle.MoveDirection)i);
             }
 
             //var ordered = moves.OrderByDescending(x => x.priority).Select(x => x.direction).ToList();
@@ -174,6 +176,12 @@ namespace NeuralNetwork2048_v2
             return child;
         }
 
+        private static void MutateValue(ref BFloat value, float mutate = 0.1f, float sign = 0.001f)
+        {
+            var f = value.ToFloat();
+            MutateValue(ref f, mutate, sign);
+            value = f.ToByte();
+        }
         private static void MutateValue(ref float value, float mutate = 0.1f, float sign = 0.001f)
         {
             // only mutate at 10% chance
@@ -186,6 +194,12 @@ namespace NeuralNetwork2048_v2
             // if value is 0.1 then there is a 1% chance of flipping
             if (r.NextDouble() < sign / value)
                 value *= -1;
+        }
+        private static BFloat MutateValue(BFloat value, float mutate = 0.1f, float sign = 0.001f)
+        {
+            var f = value.ToFloat();
+            MutateValue(ref f, mutate, sign);
+            return f.ToByte();
         }
         private static float MutateValue(float value, float mutate = 0.1f, float sign = 0.001f)
         {
@@ -225,6 +239,20 @@ namespace NeuralNetwork2048_v2
         private static int randomIndex;
 
         private static void MateValue(float p, float q, ref float c1, ref float c2)
+        {
+            randomIndex = (randomIndex + 1) % 223;
+            if (randoms[randomIndex] > 127)
+            {
+                c1 = p;
+                c2 = q;
+            }
+            else
+            {
+                c1 = q;
+                c2 = p;
+            }
+        }
+        private static void MateValue(BFloat p, BFloat q, ref BFloat c1, ref BFloat c2)
         {
             randomIndex = (randomIndex + 1) % 223;
             if (randoms[randomIndex] > 127)
