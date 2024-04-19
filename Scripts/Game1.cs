@@ -27,7 +27,9 @@ namespace NeuralNetwork2048_v2
         private int drawsperation = 2;
         private List<Brain> Brains;
         private int BrainsPerGen = 1000;
-        private int PuzzlesPerBrain = 1;
+        private float DecreasePerGen = 0.95f;
+        public int MinPerGen = 40;
+        private int PuzzlesPerBrain = 4;
 
         private int brainNumber = 0;
         private int puzzleNumber = 0;
@@ -43,11 +45,11 @@ namespace NeuralNetwork2048_v2
         private bool Do1Gen = false;
         private StreamWriter output;
 
-        private Stopwatch timer = new Stopwatch();
         private int ticksCount;
         private long totalMs;
         private long totalMainThreadMs;
         private BrainThread[] threads;
+        private BrainThread slowRunner = new();
         private int winnerCount;
 
         private int ticksForMultiplyMovingAverageIndex;
@@ -55,47 +57,30 @@ namespace NeuralNetwork2048_v2
 
         private void DoBrainTick()
         {
-            timer.Restart();
-
             var B = Brains[brainNumber];
+            var playing = true;
+            slowRunner.BrainTick(B, ref puzzleNumber, ref playing, ref ActivePuzzle);
 
-            B.CalculateMove(ActivePuzzle);
-            B.MakeMove(ActivePuzzle);
-
-            if (ActivePuzzle.hasWon)
+            // finished this brain
+            if (!playing)
             {
-                // have perfect brain
-                B.Fitness += ActivePuzzle.Score * 2;
-                winnerCount++;
-            }
-            else if (ActivePuzzle.hasLost)
-            {
-                B.Fitness += ActivePuzzle.Score;
                 ActivePuzzle = new Puzzle();
-
-                puzzleNumber++;
-                if (puzzleNumber >= PuzzlesPerBrain)
+                puzzleNumber = 0;
+                brainNumber++;
+                if (brainNumber >= Brains.Count)
                 {
-                    puzzleNumber = 0;
+                    brainNumber = 0;
 
-                    brainNumber++;
-                    if (brainNumber >= Brains.Count)
-                    {
-                        brainNumber = 0;
-
-                        CalculateGenFitness();
-                        GetNextGenCrossover();
-                        generation++;
-                        nextgen = true;
-                    }
+                    CalculateGenFitness();
+                    GetNextGenCrossover();
+                    generation++;
+                    nextgen = true;
                 }
             }
 
-            timer.Stop();
-            ticksCount++;
-            totalMs += timer.ElapsedMilliseconds;
+            ticksCount = slowRunner.ticksCount;
+            totalMs = slowRunner.totalMs;
         }
-
 
         private void DoGenerationInParallel()
         {
@@ -114,10 +99,26 @@ namespace NeuralNetwork2048_v2
                 threads[i].totalMs = 0;
             }
 
-            var countPerThread = Brains.Count / threadCount;
+            // first we divide up whole number brains
+            // eg 32 brains, 5 thread => 6 per thread
+            var basePerThread = Brains.Count / threadCount;
+            // then we have left over
+            var leftOver = Brains.Count % threadCount;
+            // the leftOver ones will then be added to the front of the threads
+            var brainIndex = 0;
             for (var i = 0; i < threadCount; i++)
-                threads[i].RunTask(Brains.Skip(i * countPerThread).Take(countPerThread), PuzzlesPerBrain);
+            {
+                var count = basePerThread;
+                if (i < leftOver)
+                    count++;
 
+                var brains = Brains
+                    .Skip(brainIndex)
+                    .Take(count)
+                    .ToList();
+                brainIndex += count;
+                threads[i].RunTask(brains, PuzzlesPerBrain);
+            }
 
             for (var i = 0; i < threadCount; i++)
             {
@@ -192,7 +193,7 @@ namespace NeuralNetwork2048_v2
         {
             var byfitness = Brains.OrderByDescending(x => x.Fitness).ToArray();
 
-            var newCount = Math.Max(byfitness.Length * 0.90f, 100);
+            var newCount = Math.Max(byfitness.Length * DecreasePerGen, MinPerGen);
             //if (newCount <= 100)
             //    PuzzlesPerBrain = 4;
             //else if (newCount <= 250)
@@ -387,6 +388,8 @@ namespace NeuralNetwork2048_v2
             {
                 ticksCount = 0;
                 totalMs = 0;
+                slowRunner.totalMs = 0;
+                slowRunner.ticksCount = 0;
                 if (WholeGeneration)
                 {
                     nextgen = false;
@@ -413,11 +416,9 @@ namespace NeuralNetwork2048_v2
                         DoBrainTick();
                     }
                 }
-
             }
 
-
-            if (generation % 1000 == 0)
+            if (generation > 0 && generation % 1000 == 0)
             {
                 Paused = true;
             }
@@ -478,6 +479,18 @@ namespace NeuralNetwork2048_v2
                 DrawTextGroup(ref timerPos, "Tick count", ticksCount);
                 DrawTextGroup(ref timerPos, "Tick total", $"{totalMs}ms");
                 DrawTextGroup(ref timerPos, "Main total", $"{totalMainThreadMs}ms");
+
+                if (brainNumber < Brains.Count && Brains[brainNumber] != null)
+                {
+                    var b = Brains[brainNumber];
+                    var movesPos = infoPos;
+                    movesPos.X += 50;
+                    movesPos.Y += 50;
+                    foreach (var m in b.moves)
+                    {
+                        DrawTextGroup(ref movesPos, m.direction.ToString(), $"{m.priority:0.00}");
+                    }
+                }
 
                 double ticksForMultiply;
                 {

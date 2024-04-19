@@ -254,24 +254,34 @@ namespace NeuralNetwork2048_v2
 #endif
 
                 //var activation = (float)Selu(sum);
-                //var activation = (float)Math.Tanh(sum);
+                //var activation = ;
 
-                const float alpha = 1.6733f;
-                const float scale = 1.0507f;
-                //return scale * (x < 0 ? ((alpha * (float)Math.Exp(x)) - alpha) : x);
-                if (sum > 0)
-                {
-                    outLayer[i] = (scale * sum).ToByte();
-                }
-                else
-                {
-                    outLayer[i] = (scale * ((alpha * (float)Math.Exp(sum)) - alpha)).ToByte();
-                }
+                //const float alpha = 1.6733f;
+                //const float scale = 1.0507f;
+                ////return scale * (x < 0 ? ((alpha * (float)Math.Exp(x)) - alpha) : x);
+
+                //var outValue = sum > 0
+                //    ? (scale * sum)
+                //    : (scale * ((alpha * (float)Math.Exp(sum)) - alpha));
+                //var outValueBytes = outValue.ToByte();
+                //outLayer[i] = outValueBytes;
+
+
+                var outValue = FastTanH(sum);
+                var outValueBytes = outValue.ToByte();
+                outLayer[i] = outValueBytes;
             }
             var end = Stopwatch.GetTimestamp();
             Interlocked.Add(ref ticks, end - start);
             Interlocked.Increment(ref count);
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float FastTanH(float x)
+        {
+            var x2 = x * x;
+            return x * (27 + x2) / (27 + (9 * x2));
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Selu(float x)
         {

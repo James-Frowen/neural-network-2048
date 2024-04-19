@@ -14,7 +14,6 @@ namespace NeuralNetwork2048_v2
             Max = max;
 
             Grid = new int[Width, Height];
-            BadMovesTillLose = BadMovesTillLoseMax;
 
             var n1 = Convert.ToInt32((r.NextDouble() * Width * Height) - 0.5);
             var n2 = Convert.ToInt32((r.NextDouble() * Width * Height) - 0.5);
@@ -48,9 +47,7 @@ namespace NeuralNetwork2048_v2
             return high;
         }
 
-        private int BadMovesTillLose;
-        private int BadMovesTillLoseMax = 10;
-        private List<Point> EmptyTiles;
+        private readonly List<Point> EmptyTiles = new List<Point>();
         public int EmptyCount;
         public float EmptyPercent()
         {
@@ -58,7 +55,7 @@ namespace NeuralNetwork2048_v2
         }
 
         public bool hasWon = false;
-        public bool hasLost = false;
+        public bool hasFinished = false;
 
         public MoveDirection LastMove;
 
@@ -66,13 +63,15 @@ namespace NeuralNetwork2048_v2
         /// Tries moves in order of preference
         /// </summary>
         /// <param name="moves"></param>
-        public void TryMoves(List<MoveDirection> moves)
+        public void TryMoves(Puzzle.MoveDirection[] moves)
         {
-            for (var i = 0; i < moves.Count; i++)
+            for (var i = 0; i < moves.Length; i++)
             {
                 if (Move(moves[i]))
                     return;
             }
+            // no valid moves
+            Lose();
         }
 
         public bool Move(MoveDirection dir)
@@ -82,33 +81,30 @@ namespace NeuralNetwork2048_v2
 
             if (changed)
             {
-                BadMovesTillLose = BadMovesTillLoseMax;
-                EmptyTiles = new List<Point>();
-                for (var x = 0; x < Width; x++)
-                {
-                    for (var y = 0; y < Height; y++)
-                    {
-                        if (Grid[x, y] == 0)
-                        {
-                            EmptyTiles.Add(new Point(x, y));
-                        }
-                    }
-                }
-
-                var n = Convert.ToInt32((r.NextDouble() * EmptyTiles.Count) - 0.5);
-                Grid[EmptyTiles[n].X, EmptyTiles[n].Y] = r.NextDouble() > 0.9 ? 4 : 2;
-                EmptyCount = EmptyTiles.Count - 1;
-            }
-            else
-            {
-                BadMovesTillLose--;
-                if (BadMovesTillLose == 0)
-                {
-                    Lose();
-                }
+                SpawnNewTile();
             }
 
             return changed;
+        }
+
+        private void SpawnNewTile()
+        {
+            // spawn next tile
+            EmptyTiles.Clear();
+            for (var x = 0; x < Width; x++)
+            {
+                for (var y = 0; y < Height; y++)
+                {
+                    if (Grid[x, y] == 0)
+                    {
+                        EmptyTiles.Add(new Point(x, y));
+                    }
+                }
+            }
+
+            var n = Convert.ToInt32((r.NextDouble() * EmptyTiles.Count) - 0.5);
+            Grid[EmptyTiles[n].X, EmptyTiles[n].Y] = r.NextDouble() > 0.9 ? 4 : 2;
+            EmptyCount = EmptyTiles.Count - 1;
         }
 
         private bool PlayMove(MoveDirection dir)
@@ -232,10 +228,12 @@ namespace NeuralNetwork2048_v2
         private void Win()
         {
             hasWon = true;
+            hasFinished = true;
         }
         private void Lose()
         {
-            hasLost = true;
+            hasWon = false;
+            hasFinished = true;
         }
 
         public enum MoveDirection
@@ -246,5 +244,4 @@ namespace NeuralNetwork2048_v2
             right = 3,
         }
     }
-
 }

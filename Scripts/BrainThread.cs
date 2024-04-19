@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 
 namespace NeuralNetwork2048_v2
@@ -26,7 +25,6 @@ namespace NeuralNetwork2048_v2
             thread.Start();
         }
 
-        public void RunTask(IEnumerable<Brain> brains, int puzzlesPerBrain = 1) => RunTask(brains.ToList(), puzzlesPerBrain);
         public void RunTask(List<Brain> brains, int puzzlesPerBrain = 1)
         {
             Brains = brains;
@@ -61,38 +59,48 @@ namespace NeuralNetwork2048_v2
         {
             var puzzleNumber = 1;
             var playing = true;
+            var puzzle = new Puzzle();
             while (playing)
             {
-                timer.Restart();
+                BrainTick(B, ref puzzleNumber, ref playing, ref puzzle);
+            }
+        }
 
-                puzzle ??= new Puzzle();
+        public void BrainTick(Brain B, ref int puzzleNumber, ref bool playing, ref Puzzle puzzle)
+        {
+            timer.Restart();
 
-                B.CalculateMove(puzzle);
-                B.MakeMove(puzzle);
+            B.CalculateMove(puzzle);
+            B.MakeMove(puzzle);
 
-                if (puzzle.hasWon)
-                {
-                    // have perfect brain
-                    Winners.Add(B);
-                    B.Fitness += puzzle.Score * 2;
-                    playing = false;
-                }
-                if (puzzle.hasLost)
-                {
-                    B.Fitness += puzzle.Score;
-                    puzzle = new Puzzle();
+            if (puzzle.hasFinished)
+                Finish(B, ref puzzleNumber, ref playing, ref puzzle);
 
-                    puzzleNumber++;
-                    if (puzzleNumber >= PuzzlesPerBrain)
-                    {
-                        puzzleNumber = 0;
-                        playing = false;
-                    }
-                }
+            timer.Stop();
+            ticksCount++;
+            totalMs += timer.ElapsedMilliseconds;
+        }
 
-                timer.Stop();
-                ticksCount++;
-                totalMs += timer.ElapsedMilliseconds;
+        private void Finish(Brain B, ref int puzzleNumber, ref bool playing, ref Puzzle puzzle)
+        {
+            var score = puzzle.Score;
+            if (puzzle.hasWon)
+            {
+                Winners.Add(B);
+                score *= 10;
+            }
+
+            B.Fitness += score;
+
+            puzzleNumber++;
+            if (puzzleNumber < PuzzlesPerBrain)
+            {
+                puzzle = new Puzzle();
+            }
+            else
+            {
+                puzzleNumber = 0;
+                playing = false;
             }
         }
     }

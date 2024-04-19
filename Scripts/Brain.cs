@@ -31,18 +31,19 @@ namespace NeuralNetwork2048_v2
         /// </summary>
         //private double DeltaMuta = 4;
 
-        public Brain(int input = 32, List<int> hidden = null, int output = 4)
+        public Brain(List<int> hidden = null, int output = 4)
         {
             hidden ??= new List<int>()
             {
                 //18,12,8
-                64
+                //64
+                16 // (lower is faster, and seems to be enough because game simple?)
                 //input*input
                 //24,20,16,12,8
             };
             _hiddenSizes = hidden;
 
-            Input = new BFloat[input];
+            Input = new BFloat[65]; // CreateInputs creates 65 inputs
             Output = new BFloat[output];
 
             layerCount = hidden.Count + 2;
@@ -102,7 +103,7 @@ namespace NeuralNetwork2048_v2
                 input[i] = BFloat.Zero;// clear
 
             var emptyCount = 0;
-            var size = P.Width * P.Height;
+            var offset = 0;
             for (var x = 0; x < P.Width; x++)
             {
                 for (var y = 0; y < P.Height; y++)
@@ -113,25 +114,82 @@ namespace NeuralNetwork2048_v2
                     //Input[(x * P.Height) + y] = (float)(v / m);
 
                     var value = P.Grid[x, y];
+                    BFloat inputValue;
 
                     if (value == 0)
                     {
-                        input[(x * P.Height) + y] = (-1f).ToByte();
+                        inputValue = (-1f).ToByte();
                         emptyCount++;
                     }
                     else
                     {
-                        input[(x * P.Height) + y] = ((float)(value / m)).ToByte();
+                        inputValue = ((float)(value / m)).ToByte();
+                    }
+                    input[offset] = inputValue;
+                    offset++;
+                }
+            }
+
+            for (var x = 0; x < P.Width; x++)
+            {
+                for (var y = 0; y < P.Height; y++)
+                {
+                    var value = P.Grid[x, y];
+                    var valueUp = TryGet(x, y + 1);
+                    var valueDown = TryGet(x, y - 1);
+                    var valueRight = TryGet(x + 1, y);
+                    var valueLeft = TryGet(x - 1, y);
+
+                    Set(value, valueUp);
+                    Set(value, valueDown);
+                    Set(value, valueRight);
+                    Set(value, valueLeft);
+
+                    int? TryGet(int x, int y)
+                    {
+                        if (x < 0 || x >= P.Width)
+                            return null;
+                        if (y < 0 || y >= P.Height)
+                            return null;
+
+                        return P.Grid[x, y];
+                    }
+
+                    void Set(int value, int? other)
+                    {
+                        if (other.HasValue)
+                        {
+                            input[offset] = Compare(value, other.Value);
+                            offset++;
+                        }
+                    }
+
+                    BFloat Compare(int value, int other)
+                    {
+                        if (value == other)
+                        {
+                            return 1f.ToByte();
+                        }
+                        else if (value == 0 || other == 0)
+                        {
+                            return (-1f).ToByte();
+                        }
+                        else
+                        {
+                            return 0f.ToByte();
+                        }
                     }
                 }
             }
 
-            //ActivationFunction(Input);
-            input[16] = (emptyCount / size).ToByte();
-            //Input[17] = P.EmptyPercent() * 100;
+            var size = P.Width * P.Height;
+            input[offset] = (emptyCount / size).ToByte();
+            offset++;
         }
 
-        private (float priority, Puzzle.MoveDirection direction)[] moves = new (float priority, Puzzle.MoveDirection direction)[4];
+        public (float priority, Puzzle.MoveDirection direction)[] moves = new (float priority, Puzzle.MoveDirection direction)[4];
+        private Puzzle.MoveDirection[] orderedMoves = new Puzzle.MoveDirection[4];
+
         public void MakeMove(Puzzle P)
         {
             for (var i = 0; i < 4; i++)
@@ -156,11 +214,9 @@ namespace NeuralNetwork2048_v2
 
             for (var i = 0; i < 4; i++)
             {
-                if (P.Move(moves[i].direction))
-                    return;
+                orderedMoves[i] = moves[i].direction;
             }
-
-            //P.TryMoves(ordered);
+            P.TryMoves(orderedMoves);
         }
 
 
@@ -230,7 +286,7 @@ namespace NeuralNetwork2048_v2
 
         public Brain EmptyChild()
         {
-            var child = new Brain(Input.Length, _hiddenSizes, Output.Length);
+            var child = new Brain(_hiddenSizes, Output.Length);
 
             return child;
         }
