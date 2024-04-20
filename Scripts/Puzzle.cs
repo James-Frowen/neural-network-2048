@@ -6,33 +6,53 @@ namespace NeuralNetwork2048_v2
 {
     public class Puzzle
     {
-        private Random r = new Random(0);
-        public Puzzle(int width = 4, int height = 4, int max = 2048)
-        {
-            Width = width;
-            Height = height;
-            Max = max;
-
-            Grid = new int[Width, Height];
-
-            var n1 = Convert.ToInt32((r.NextDouble() * Width * Height) - 0.5);
-            var n2 = Convert.ToInt32((r.NextDouble() * Width * Height) - 0.5);
-            while (n2 == n1)
-            {
-                n2 = Convert.ToInt32((r.NextDouble() * Width * Height) - 0.5);
-            }
-
-            Grid[n1 % Width, n1 / Width] = r.NextDouble() > 0.9 ? 4 : 2;
-            Grid[n2 % Width, n2 / Width] = r.NextDouble() > 0.9 ? 4 : 2;
-
-            EmptyCount = (Width * Height) - 2;
-        }
+        private Random r = new Random();
 
         public int Width;
         public int Height;
-        public int Max;
-        public int[,] Grid;
+        public byte[,] Grid;
         public double Score = 0;
+        public const int MAX = 11;
+
+        public Puzzle(int width = 4, int height = 4, bool randomBoard = false)
+        {
+            Width = width;
+            Height = height;
+            Grid = new byte[Width, Height];
+
+            if (randomBoard)
+            {
+                SetRandomBoard();
+            }
+            else
+            {
+                var size = Width * Height;
+                var n1 = Convert.ToInt32((r.NextDouble() * size) - 0.5);
+                var n2 = Convert.ToInt32((r.NextDouble() * size) - 0.5);
+                while (n2 == n1)
+                {
+                    n2 = Convert.ToInt32((r.NextDouble() * size) - 0.5);
+                }
+
+                Grid[n1 % Width, n1 / Width] = (byte)(r.NextDouble() > 0.9 ? 2 : 1);
+                Grid[n2 % Width, n2 / Width] = (byte)(r.NextDouble() > 0.9 ? 2 : 1);
+            }
+        }
+
+        public void SetRandomBoard()
+        {
+            var fillCount = r.Next(6, 10);
+            while (fillCount > 0)
+            {
+                var x = r.Next(0, Width);
+                var y = r.Next(0, Height);
+                if (Grid[x, y] == 0)
+                {
+                    Grid[x, y] = (byte)r.Next(1, 8);
+                    fillCount--;
+                }
+            }
+        }
 
         public int HighestOnGrid()
         {
@@ -48,10 +68,22 @@ namespace NeuralNetwork2048_v2
         }
 
         private readonly List<Point> EmptyTiles = new List<Point>();
-        public int EmptyCount;
+        public int GeteEmptyCount()
+        {
+            var empty = 0;
+            for (var x = 0; x < Width; x++)
+            {
+                for (var y = 0; y < Height; y++)
+                {
+                    if (Grid[x, y] == 0)
+                        empty++;
+                }
+            }
+            return empty;
+        }
         public float EmptyPercent()
         {
-            return EmptyCount * 1.0f / (Width * Height);
+            return GeteEmptyCount() * 1.0f / (Width * Height);
         }
 
         public bool hasWon = false;
@@ -102,9 +134,8 @@ namespace NeuralNetwork2048_v2
                 }
             }
 
-            var n = Convert.ToInt32((r.NextDouble() * EmptyTiles.Count) - 0.5);
-            Grid[EmptyTiles[n].X, EmptyTiles[n].Y] = r.NextDouble() > 0.9 ? 4 : 2;
-            EmptyCount = EmptyTiles.Count - 1;
+            var n = r.Next(0, EmptyTiles.Count);
+            Grid[EmptyTiles[n].X, EmptyTiles[n].Y] = (byte)(r.NextDouble() > 0.9 ? 4 : 2);
         }
 
         private bool PlayMove(MoveDirection dir)
@@ -172,11 +203,12 @@ namespace NeuralNetwork2048_v2
                 { // if grid not empty, ...
                     if (nextvalue == value)
                     { // if same value as current, merge
+                        var newValue = value + 1;
                         Grid[x, y] = 0;
                         x += Math.Sign(dx);
-                        Grid[x, y] = value * 2;
-                        Score += value * 2;
-                        if (value * 2 == Max)
+                        Grid[x, y] = (byte)newValue;
+                        Score += newValue;
+                        if (newValue == MAX)
                         {
                             Win();
                         }
@@ -206,11 +238,12 @@ namespace NeuralNetwork2048_v2
                 { // if grid not empty, ...
                     if (nextvalue == value)
                     { // if same value as current, merge
+                        var newValue = value + 1;
                         Grid[x, y] = 0;
                         y += Math.Sign(dy);
-                        Grid[x, y] = value * 2;
-                        Score += value * 2;
-                        if (value * 2 == Max)
+                        Grid[x, y] = (byte)newValue;
+                        Score += newValue;
+                        if (newValue == MAX)
                         {
                             Win();
                         }

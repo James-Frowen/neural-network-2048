@@ -15,12 +15,14 @@ namespace NeuralNetwork2048_v2
         private Puzzle puzzle;
         private List<Brain> Brains = new List<Brain>();
         private int PuzzlesPerBrain = 1;
+        private readonly bool randomBoard;
         public bool Running { get; private set; }
 
         public List<Brain> Winners = new List<Brain>();
 
-        public BrainThread()
+        public BrainThread(bool randomBoard)
         {
+            this.randomBoard = randomBoard;
             var thread = new Thread(Loop);
             thread.Start();
         }
@@ -59,7 +61,7 @@ namespace NeuralNetwork2048_v2
         {
             var puzzleNumber = 1;
             var playing = true;
-            var puzzle = new Puzzle();
+            var puzzle = new Puzzle(randomBoard: randomBoard);
             while (playing)
             {
                 BrainTick(B, ref puzzleNumber, ref playing, ref puzzle);
@@ -95,7 +97,7 @@ namespace NeuralNetwork2048_v2
             puzzleNumber++;
             if (puzzleNumber < PuzzlesPerBrain)
             {
-                puzzle = new Puzzle();
+                puzzle = new Puzzle(randomBoard: randomBoard);
             }
             else
             {

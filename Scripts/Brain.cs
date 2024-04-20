@@ -37,13 +37,14 @@ namespace NeuralNetwork2048_v2
             {
                 //18,12,8
                 //64
-                16 // (lower is faster, and seems to be enough because game simple?)
+                //32 // (lower is faster, and seems to be enough because game simple?)
+                64,
                 //input*input
                 //24,20,16,12,8
             };
             _hiddenSizes = hidden;
 
-            Input = new BFloat[65]; // CreateInputs creates 65 inputs
+            Input = new BFloat[176]; // CreateInputs creates 65 inputs
             Output = new BFloat[output];
 
             layerCount = hidden.Count + 2;
@@ -96,94 +97,104 @@ namespace NeuralNetwork2048_v2
 
         private static void CreateInputs(Puzzle P, BFloat[] input)
         {
-            // give data to input matrix
-            var m = Math.Log(2048, 2);
-
             for (var i = 16; i < 32; i++)
                 input[i] = BFloat.Zero;// clear
 
             var emptyCount = 0;
             var offset = 0;
-            for (var x = 0; x < P.Width; x++)
-            {
-                for (var y = 0; y < P.Height; y++)
-                {
-                    //var v = P.Grid[x, y] == 0 
-                    //    ? -1 
-                    //    : Math.Log(P.Grid[x, y], 2);
-                    //Input[(x * P.Height) + y] = (float)(v / m);
-
-                    var value = P.Grid[x, y];
-                    BFloat inputValue;
-
-                    if (value == 0)
-                    {
-                        inputValue = (-1f).ToByte();
-                        emptyCount++;
-                    }
-                    else
-                    {
-                        inputValue = ((float)(value / m)).ToByte();
-                    }
-                    input[offset] = inputValue;
-                    offset++;
-                }
-            }
-
+            // +224
             for (var x = 0; x < P.Width; x++)
             {
                 for (var y = 0; y < P.Height; y++)
                 {
                     var value = P.Grid[x, y];
-                    var valueUp = TryGet(x, y + 1);
-                    var valueDown = TryGet(x, y - 1);
-                    var valueRight = TryGet(x + 1, y);
-                    var valueLeft = TryGet(x - 1, y);
 
-                    Set(value, valueUp);
-                    Set(value, valueDown);
-                    Set(value, valueRight);
-                    Set(value, valueLeft);
-
-                    int? TryGet(int x, int y)
+                    for (var i = 0; i < Puzzle.MAX; i++)
                     {
-                        if (x < 0 || x >= P.Width)
-                            return null;
-                        if (y < 0 || y >= P.Height)
-                            return null;
-
-                        return P.Grid[x, y];
-                    }
-
-                    void Set(int value, int? other)
-                    {
-                        if (other.HasValue)
+                        if (value == i)
                         {
-                            input[offset] = Compare(value, other.Value);
-                            offset++;
-                        }
-                    }
-
-                    BFloat Compare(int value, int other)
-                    {
-                        if (value == other)
-                        {
-                            return 1f.ToByte();
-                        }
-                        else if (value == 0 || other == 0)
-                        {
-                            return (-1f).ToByte();
+                            input[offset] = 1f.ToByte();
                         }
                         else
                         {
-                            return 0f.ToByte();
+                            input[offset] = 0f.ToByte();
                         }
+                        offset++;
                     }
+
+                    //BFloat inputValue;
+                    //if (value == 0)
+                    //{
+                    //    inputValue = (-1f).ToByte();
+                    //    emptyCount++;
+                    //}
+                    //else
+                    //{
+                    //    inputValue = (value / (float)Puzzle.MAX).ToByte();
+                    //}
+                    //input[offset] = inputValue;
+                    //offset++;
+
+
                 }
             }
 
+            // +48
+            //for (var x = 0; x < P.Width; x++)
+            //{
+            //    for (var y = 0; y < P.Height; y++)
+            //    {
+            //        var value = P.Grid[x, y];
+            //        var valueUp = TryGet(x, y + 1);
+            //        var valueDown = TryGet(x, y - 1);
+            //        var valueRight = TryGet(x + 1, y);
+            //        var valueLeft = TryGet(x - 1, y);
+
+            //        Set(value, valueUp);
+            //        Set(value, valueDown);
+            //        Set(value, valueRight);
+            //        Set(value, valueLeft);
+
+            //        int? TryGet(int x, int y)
+            //        {
+            //            if (x < 0 || x >= P.Width)
+            //                return null;
+            //            if (y < 0 || y >= P.Height)
+            //                return null;
+
+            //            return P.Grid[x, y];
+            //        }
+
+            //        void Set(int value, int? other)
+            //        {
+            //            if (other.HasValue)
+            //            {
+            //                input[offset] = Compare(value, other.Value);
+            //                offset++;
+            //            }
+            //        }
+
+            //        BFloat Compare(int value, int other)
+            //        {
+            //            if (value == other)
+            //            {
+            //                return 1f.ToByte();
+            //            }
+            //            else if (value == 0 || other == 0)
+            //            {
+            //                return 0f.ToByte();
+            //            }
+            //            else
+            //            {
+            //                return (-1f).ToByte();
+            //            }
+            //        }
+            //    }
+            //}
+
+            // +1
             var size = P.Width * P.Height;
-            input[offset] = (emptyCount / size).ToByte();
+            //input[offset] = (emptyCount / size).ToByte();
             offset++;
         }
 
@@ -220,69 +231,20 @@ namespace NeuralNetwork2048_v2
         }
 
 
-        public Brain Evolve(float mutate = 0.01f, float sign = 0.001f)
+        public Brain Evolve(float factor = 1)
         {
             var child = EmptyChild();
             child.Weights = new Matrix[weightCount];
+            var mutator = new Mutator();
+            mutator.factor = factor;
             for (var i = 0; i < weightCount; i++)
             {
-                child.Weights[i] = MatrixEvolveNew(Weights[i], mutate, sign);
+                child.Weights[i] = mutator.MatrixEvolveNew(Weights[i]);
             }
 
             return child;
         }
 
-        private static void MutateValue(ref BFloat value, float mutate = 0.1f, float sign = 0.001f)
-        {
-            var f = value.ToFloat();
-            MutateValue(ref f, mutate, sign);
-            value = f.ToByte();
-        }
-        private static void MutateValue(ref float value, float mutate = 0.1f, float sign = 0.001f)
-        {
-            // only mutate at 10% chance
-            if (r.NextDouble() < mutate)
-                value *= (float)Math.Pow(1.05, r.NextDouble() - 0.5);
-
-            // only mutate (flip sign) at 0.01%/value
-            // examples:
-            // if value = 0.01 then there is 10% chance of fliping sign
-            // if value is 0.1 then there is a 1% chance of flipping
-            if (r.NextDouble() < sign / value)
-                value *= -1;
-        }
-        private static BFloat MutateValue(BFloat value, float mutate = 0.1f, float sign = 0.001f)
-        {
-            var f = value.ToFloat();
-            MutateValue(ref f, mutate, sign);
-            return f.ToByte();
-        }
-        private static float MutateValue(float value, float mutate = 0.1f, float sign = 0.001f)
-        {
-            MutateValue(ref value, mutate, sign);
-            return value;
-        }
-
-        private static Matrix MatrixEvolveNew(Matrix A, float mutate = 0.1f, float sign = 0.001f)
-        {
-            var R = A.Clone();
-            for (var i = 0; i < R.Data.Length; i++)
-            {
-                MutateValue(ref R.Data[i], mutate, sign);
-            }
-
-            R.Bias = MutateValue(A.Bias, mutate, sign);
-            return R;
-        }
-        private static void MatrixEvolve(Matrix A, float mutate = 0.1f, float sign = 0.001f)
-        {
-            for (var i = 0; i < A.Data.Length; i++)
-            {
-                MutateValue(ref A.Data[i], mutate, sign);
-            }
-
-            A.Bias = MutateValue(A.Bias, mutate, sign);
-        }
 
         public Brain EmptyChild()
         {
@@ -346,8 +308,70 @@ namespace NeuralNetwork2048_v2
 
                 MateMatrix(p.Weights[i], q.Weights[i], c1.Weights[i], c2.Weights[i]);
 
-                MatrixEvolve(c1.Weights[i], 0.02f, 0.0001f);
-                MatrixEvolve(c2.Weights[i], 0.02f, 0.0001f);
+                var mutator = new Mutator();
+                mutator.factor = 2;
+                mutator.MatrixEvolve(c1.Weights[i]);
+                mutator.MatrixEvolve(c2.Weights[i]);
+            }
+        }
+
+
+        private class Mutator
+        {
+            public float factor = 1;
+
+            public void MutateValue(ref BFloat value)
+            {
+                var f = value.ToFloat();
+                MutateValue(ref f);
+                value = f.ToByte();
+            }
+            public void MutateValue(ref float value)
+            {
+                var rate = 0.10 * factor;
+                if (r.NextDouble() > rate)
+                {
+                    var rnd = r.NextDouble();
+                    var shift = rnd * rnd * 0.2f * factor;
+
+                    if (r.NextDouble() > 0.5f)
+                        shift *= -1;
+
+                    value += (float)shift;
+                }
+            }
+            public BFloat MutateValue(BFloat value)
+            {
+                var f = value.ToFloat();
+                MutateValue(ref f);
+                return f.ToByte();
+            }
+            public float MutateValue(float value)
+            {
+                MutateValue(ref value);
+                return value;
+            }
+
+            public Matrix MatrixEvolveNew(Matrix A)
+            {
+                var R = A.Clone();
+                for (var i = 0; i < R.Data.Length; i++)
+                {
+                    MutateValue(ref R.Data[i]);
+                }
+
+                R.Bias = MutateValue(A.Bias);
+                return R;
+            }
+
+            public void MatrixEvolve(Matrix A)
+            {
+                for (var i = 0; i < A.Data.Length; i++)
+                {
+                    MutateValue(ref A.Data[i]);
+                }
+
+                A.Bias = MutateValue(A.Bias);
             }
         }
     }

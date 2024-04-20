@@ -31,6 +31,11 @@ namespace NeuralNetwork2048_v2
         public byte raw;
 
         public static readonly BFloat Zero = default;
+
+        public override string ToString()
+        {
+            return raw.ToString();
+        }
     }
     public static class BitHelper
     {

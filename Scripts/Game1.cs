@@ -26,10 +26,13 @@ namespace NeuralNetwork2048_v2
         private int drawsize = 50;
         private int drawsperation = 2;
         private List<Brain> Brains;
-        private int BrainsPerGen = 1000;
-        private float DecreasePerGen = 0.95f;
-        public int MinPerGen = 40;
-        private int PuzzlesPerBrain = 4;
+        private int BrainsPerGen = 50;
+        private float DecreasePerGen = 0.90f;
+        public int MinPerGen = 50;
+        private int PuzzlesPerBrain = 10;
+        public bool randomBoard = true;
+        private const int threadCount = 5;
+        private int pauseAfter = 100;
 
         private int brainNumber = 0;
         private int puzzleNumber = 0;
@@ -49,7 +52,7 @@ namespace NeuralNetwork2048_v2
         private long totalMs;
         private long totalMainThreadMs;
         private BrainThread[] threads;
-        private BrainThread slowRunner = new();
+        private BrainThread slowRunner;
         private int winnerCount;
 
         private int ticksForMultiplyMovingAverageIndex;
@@ -64,7 +67,7 @@ namespace NeuralNetwork2048_v2
             // finished this brain
             if (!playing)
             {
-                ActivePuzzle = new Puzzle();
+                ActivePuzzle = new Puzzle(randomBoard: randomBoard);
                 puzzleNumber = 0;
                 brainNumber++;
                 if (brainNumber >= Brains.Count)
@@ -84,12 +87,11 @@ namespace NeuralNetwork2048_v2
 
         private void DoGenerationInParallel()
         {
-            const int threadCount = 20;
             if (threads == null)
             {
                 threads = new BrainThread[threadCount];
                 for (var i = 0; i < threadCount; i++)
-                    threads[i] = new BrainThread();
+                    threads[i] = new BrainThread(randomBoard);
             }
 
             var stopwatch = Stopwatch.StartNew();
@@ -193,7 +195,9 @@ namespace NeuralNetwork2048_v2
         {
             var byfitness = Brains.OrderByDescending(x => x.Fitness).ToArray();
 
+            var highest = byfitness.First().Fitness;
             var newCount = Math.Max(byfitness.Length * DecreasePerGen, MinPerGen);
+
             //if (newCount <= 100)
             //    PuzzlesPerBrain = 4;
             //else if (newCount <= 250)
@@ -213,20 +217,24 @@ namespace NeuralNetwork2048_v2
                 Brains.Add(byfitness[n]);
             }
 
+
+
             // next 30% will mutate
             for (var n = (int)(newCount * .1f); n < newCount * .4f; n++)
             {
                 var fitness = (float)byfitness[n].Fitness;
-                var best = 20_000;
-                var percent = fitness / best;
-                var percent4 = percent * percent * percent;
-                var oneMinus = 1 - percent4; // will be close to 1 unless fitness is really high
+                if (fitness == 0)
+                {
+                    Brains.Add(byfitness[n].Evolve(10));
+                }
+                else
+                {
+                    var percent = fitness / (float)highest;
+                    var percent4 = percent * percent;
 
-                var factor = oneMinus * 100;
-                var mutate = 0.01f * factor;
-                var sign = 0.001f / 10 * factor;
-
-                Brains.Add(byfitness[n].Evolve(mutate, sign));
+                    var factor = 0.5f / percent4;
+                    Brains.Add(byfitness[n].Evolve(factor));
+                }
             }
 
 
@@ -263,7 +271,7 @@ namespace NeuralNetwork2048_v2
             MaxElapsedTime = TimeSpan.FromSeconds(10);
 
             IsMouseVisible = true;
-
+            slowRunner = new BrainThread(randomBoard);
         }
 
         /// <summary>
@@ -284,7 +292,7 @@ namespace NeuralNetwork2048_v2
                 Brains.Add(new Brain());
                 Brains[n].InitNew();
             }
-            ActivePuzzle = new Puzzle();
+            ActivePuzzle = new Puzzle(randomBoard: randomBoard);
 
             Paused = true;
 
@@ -304,7 +312,8 @@ namespace NeuralNetwork2048_v2
             WhitePixel.SetData(new Color[] { Color.White });
             font1 = Content.Load<SpriteFont>("Arial16");
 
-            output = new StreamWriter("output.csv");
+            output = new StreamWriter("output.csv") { AutoFlush = true };
+
             output.WriteLine("{0},{1},{2},{3}", "Generation", "MaxFit", "AvgFit", "MinFit");
 
             // TODO: use this.Content to load your game content here
@@ -358,6 +367,10 @@ namespace NeuralNetwork2048_v2
             //}
             #endregion
 
+            if (state.IsKeyDown(Keys.R) && oldstate.IsKeyUp(Keys.R))
+            {
+                randomBoard = !randomBoard;
+            }
             if (state.IsKeyDown(Keys.Q) && oldstate.IsKeyUp(Keys.Q))
             {
                 BrainTickSpeed *= 1.2;
@@ -418,7 +431,7 @@ namespace NeuralNetwork2048_v2
                 }
             }
 
-            if (generation > 0 && generation % 1000 == 0)
+            if (generation > 0 && generation % pauseAfter == 0)
             {
                 Paused = true;
             }
@@ -440,14 +453,14 @@ namespace NeuralNetwork2048_v2
                 {
                     for (var y = 0; y < P.Height; y++)
                     {
-                        var v = P.Grid[x, y] == 0 ? 0 : Math.Log(P.Grid[x, y], 2);
-                        var m = Math.Log(P.HighestOnGrid(), 2);//Math.Log(P.Max, 2);
+                        var v = P.Grid[x, y];
+                        var m = P.HighestOnGrid();
                         var a = Convert.ToInt32(255 * v / m);
                         if (a != 0)
                         {
                             spriteBatch.Draw(WhitePixel, new Rectangle(x * (drawsize + drawsperation), y * (drawsize + drawsperation), drawsize, drawsize), new Color(a, a, a));
                             var b = a < 120 ? 255 : 0;
-                            spriteBatch.DrawString(font1, P.Grid[x, y].ToString(), new Vector2(x * (drawsize + drawsperation), y * (drawsize + drawsperation)), new Color(b, b, b));
+                            spriteBatch.DrawString(font1, (1 << P.Grid[x, y]).ToString(), new Vector2(x * (drawsize + drawsperation), y * (drawsize + drawsperation)), new Color(b, b, b));
                         }
                     }
                 }
@@ -472,6 +485,7 @@ namespace NeuralNetwork2048_v2
                 DrawTextGroup(ref settingsPos, "Paused", Paused);
                 DrawTextGroup(ref settingsPos, "Do1Gen", Do1Gen);
                 DrawTextGroup(ref settingsPos, "WholeGeneration", WholeGeneration);
+                DrawTextGroup(ref settingsPos, "Random Board", randomBoard);
 
 
                 var timerPos = settingsPos + new Vector2(0, 20);
